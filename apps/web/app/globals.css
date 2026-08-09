@@ -1,0 +1,64 @@
+/* SLBSans — Schlumberger brand sans (vendored from
+   https://github.com/Amory0709/SLB100FamilyDay/tree/main/assets/fonts
+   The slb.com CDN does not send CORS headers, so cross-origin @font-face
+   fails in dev. We host the woff2 locally under /public/fonts/.) */
+@font-face {
+  font-family: 'SLBSans';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/SLBSans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'SLBSans';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/SLBSans-Bold.woff2') format('woff2');
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-background: #ffffff;
+    --color-foreground: #091221;
+    --color-card: #ffffff;
+    --color-card-foreground: #091221;
+    --color-primary: #0033CC;
+    --color-primary-foreground: #ffffff;
+    --color-muted: #f2f5f9;
+    --color-muted-foreground: #5c6d82;
+    --color-border: #e2e8f0;
+  }
+
+  html, body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+  }
+  body {
+    font-family: 'SLBSans', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.005em;
+    scrollbar-width: none;
+  }
+  body::-webkit-scrollbar { display: none; }
+
+  /* Headings use SLBSans Bold; italic for the editorial touch (was Instrument Serif). */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'SLBSans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 { perspective: 1000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+}

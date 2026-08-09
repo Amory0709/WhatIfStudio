@@ -1,0 +1,47 @@
+# ─── Node / Next.js ─────────────────────────────────────────────────────
+node_modules/
+.next/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+
+# ─── Python / FastAPI / swap engine ────────────────────────────────────
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Face-swap engine weights (re-vendor with the engine script; not in git)
+apps/api/engine/models/
+apps/api/engine/*.onnx
+apps/api/engine/*.pth
+
+# ─── Runtime / logs ─────────────────────────────────────────────────────
+*.log
+*.pid
+nohup.out
+/tmp/*.log
+
+# ─── OS junk ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ─── Local secrets / env ────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+**/secrets.json
+**/*.pem
+
+# ─── User uploads (face photos customers paste in) ──────────────────────
+apps/api/uploads/
+apps/web/public/uploads/

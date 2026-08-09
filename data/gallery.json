@@ -1,0 +1,10 @@
+[
+  { "id": "amber-1",  "title": "Amber Light, 1923", "artist": "Studio WhatIf", "year": 2024, "palette": "amber",  "mood": "warm portrait" },
+  { "id": "salt-2",   "title": "Salt & Silver",    "artist": "Studio WhatIf", "year": 2024, "palette": "silver", "mood": "editorial"   },
+  { "id": "moss-3",   "title": "Mossgrove",        "artist": "Studio WhatIf", "year": 2024, "palette": "forest", "mood": "naturalist"  },
+  { "id": "velvet-4", "title": "Velvet Hour",      "artist": "Studio WhatIf", "year": 2024, "palette": "wine",   "mood": "noir"        },
+  { "id": "ivory-5",  "title": "Ivory",            "artist": "Studio WhatIf", "year": 2024, "palette": "ivory",  "mood": "minimal"     },
+  { "id": "iron-6",   "title": "Iron Coast",       "artist": "Studio WhatIf", "year": 2024, "palette": "slate",  "mood": "monochrome"  },
+  { "id": "opal-7",   "title": "Opal Window",      "artist": "Studio WhatIf", "year": 2024, "palette": "opal",   "mood": "dreamlike"   },
+  { "id": "rust-8",   "title": "Rust & Bone",      "artist": "Studio WhatIf", "year": 2024, "palette": "rust",   "mood": "raw"         }
+]
