@@ -8,11 +8,9 @@ from pathlib import Path
 from PIL import Image
 
 API_DIR = Path(__file__).resolve().parent.parent
-# Two assets are read:
-#   slb-logo.png     — the original vector-style logo (kept for reference / web preview)
-#   slb-badge-rgba.png — pre-baked 100x70 RGBA badge (chroma-keyed, alpha preserved).
-# We load the pre-baked badge and resize it to 10px at composite time. This avoids
-# the destructive 40:1 downsample from the original 400x280 source directly to 10x7.
+# Pre-baked 100x70 RGBA badge (chroma-keyed at build time). Loading this and
+# resizing to 10x7 at composite time avoids the destructive 40:1 downsample
+# we used to get when going from the 400x280 source directly to 10x7.
 LOGO_PATH = Path(os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb-logo.png")))
 BADGE_PATH = Path(os.getenv("WATERMARK_BADGE", str(API_DIR / "assets" / "slb-badge-rgba.png")))
 
@@ -22,7 +20,7 @@ WATERMARK_W_PX = 10
 def _load_badge():
     if BADGE_PATH.exists():
         return Image.open(BADGE_PATH).convert("RGBA")
-    # Fallback: load + chroma-key on the fly (slow path)
+    # Fallback: load + chroma-key on the fly
     KEY_THRESHOLD = 32
     logo = Image.open(LOGO_PATH).convert("RGBA")
     px = logo.load()
@@ -39,7 +37,6 @@ def burn_watermark(png_bytes, opacity=0.95):
     w, h = img.size
 
     badge = _load_badge()
-    # Resize the pre-baked badge to WATERMARK_W_PX wide at composite time.
     ratio = WATERMARK_W_PX / badge.width
     target_h = max(1, int(badge.height * ratio))
     badge = badge.resize((WATERMARK_W_PX, target_h), Image.LANCZOS)
