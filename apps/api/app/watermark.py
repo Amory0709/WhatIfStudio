@@ -1,4 +1,4 @@
-"""Burn the SLB logo into swapped output as a small corner badge (10px wide)."""
+"""Burn the SLB logo into swapped output as a tiny 10px corner badge."""
 from __future__ import annotations
 
 import io
@@ -8,30 +8,26 @@ from pathlib import Path
 from PIL import Image
 
 API_DIR = Path(__file__).resolve().parent.parent
+# Two assets are read:
+#   slb-logo.png     — the original vector-style logo (kept for reference / web preview)
+#   slb-badge-rgba.png — pre-baked 100x70 RGBA badge (chroma-keyed, alpha preserved).
+# We load the pre-baked badge and resize it to 10px at composite time. This avoids
+# the destructive 40:1 downsample from the original 400x280 source directly to 10x7.
 LOGO_PATH = Path(os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb-logo.png")))
-# Pixels darker than this become transparent (chroma-key the black bg).
-KEY_THRESHOLD = 32
+BADGE_PATH = Path(os.getenv("WATERMARK_BADGE", str(API_DIR / "assets" / "slb-badge-rgba.png")))
 
-# The user asked for the logo to be tiny (10px wide). Keep an aspect-ratio
-# proportional to the source PNG (905 x 644 ≈ 1.405:1).
 WATERMARK_W_PX = 10
 
 
-def _load_logo():
-    if LOGO_PATH.exists():
-        logo = Image.open(LOGO_PATH).convert("RGBA")
-    else:
-        logo = Image.new("RGBA", (WATERMARK_W_PX, WATERMARK_W_PX), (0, 0, 0, 0))
-
-    ratio = WATERMARK_W_PX / logo.width
-    target_h = max(1, int(logo.height * ratio))
-    logo = logo.resize((WATERMARK_W_PX, target_h), Image.LANCZOS)
-
-    # Chroma-key near-black pixels to transparent.
+def _load_badge():
+    if BADGE_PATH.exists():
+        return Image.open(BADGE_PATH).convert("RGBA")
+    # Fallback: load + chroma-key on the fly (slow path)
+    KEY_THRESHOLD = 32
+    logo = Image.open(LOGO_PATH).convert("RGBA")
     px = logo.load()
-    w, h = logo.size
-    for y in range(h):
-        for x in range(w):
+    for y in range(logo.height):
+        for x in range(logo.width):
             r, g, b, a = px[x, y]
             if r <= KEY_THRESHOLD and g <= KEY_THRESHOLD and b <= KEY_THRESHOLD:
                 px[x, y] = (0, 0, 0, 0)
@@ -39,25 +35,24 @@ def _load_logo():
 
 
 def burn_watermark(png_bytes, opacity=0.95):
-    """Composite the SLB logo into the bottom-right corner of the swapped PNG.
-
-    Logo is a fixed 10px wide badge. Margin = 16px from each edge.
-    """
     img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     w, h = img.size
 
-    logo = _load_logo()
-    lw, lh = logo.size
+    badge = _load_badge()
+    # Resize the pre-baked badge to WATERMARK_W_PX wide at composite time.
+    ratio = WATERMARK_W_PX / badge.width
+    target_h = max(1, int(badge.height * ratio))
+    badge = badge.resize((WATERMARK_W_PX, target_h), Image.LANCZOS)
 
     if opacity < 1.0:
-        a = logo.split()[-1].point(lambda p: int(p * opacity))
-        logo.putalpha(a)
+        a = badge.split()[-1].point(lambda p: int(p * opacity))
+        badge.putalpha(a)
 
     margin = 16
-    pos = (w - lw - margin, h - lh - margin)
+    pos = (w - WATERMARK_W_PX - margin, h - target_h - margin)
 
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    overlay.paste(logo, pos, logo)
+    overlay.paste(badge, pos, badge)
     out = Image.alpha_composite(img, overlay)
 
     buf = io.BytesIO()
