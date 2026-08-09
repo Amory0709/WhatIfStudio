@@ -8,19 +8,19 @@ from pathlib import Path
 from PIL import Image
 
 API_DIR = Path(__file__).resolve().parent.parent
-# Pre-baked 100x70 RGBA badge (chroma-keyed at build time). Loading this and
-# resizing to 10x7 at composite time avoids the destructive 40:1 downsample
-# we used to get when going from the 400x280 source directly to 10x7.
 LOGO_PATH = Path(os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb-logo.png")))
 BADGE_PATH = Path(os.getenv("WATERMARK_BADGE", str(API_DIR / "assets" / "slb-badge-rgba.png")))
 
 WATERMARK_W_PX = 10
 
+# We pre-bake a chroma-keyed RGBA badge with a tighter threshold so anti-aliased
+# edges of the blue logo survive the 10x7 downsample. The badge asset should NOT
+# have any near-black pixels (they'd just get dropped on composite anyway).
+
 
 def _load_badge():
     if BADGE_PATH.exists():
         return Image.open(BADGE_PATH).convert("RGBA")
-    # Fallback: load + chroma-key on the fly
     KEY_THRESHOLD = 32
     logo = Image.open(LOGO_PATH).convert("RGBA")
     px = logo.load()
@@ -32,7 +32,12 @@ def _load_badge():
     return logo
 
 
-def burn_watermark(png_bytes, opacity=0.95):
+def burn_watermark(png_bytes, opacity=1.0):
+    """Composite the SLB logo into the bottom-right corner as a 10px-wide badge.
+
+    Opacity defaults to 1.0 — the badge is already anti-aliased and we want
+    full color saturation in the bottom-right corner.
+    """
     img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     w, h = img.size
 
