@@ -1,4 +1,4 @@
-"""Burn the SLB logo into swapped output as a visible watermark (bottom-right)."""
+"""Burn the SLB logo into swapped output as a small corner badge (10px wide)."""
 from __future__ import annotations
 
 import io
@@ -12,16 +12,22 @@ LOGO_PATH = Path(os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb-logo.
 # Pixels darker than this become transparent (chroma-key the black bg).
 KEY_THRESHOLD = 32
 
+# The user asked for the logo to be tiny (10px wide). Keep an aspect-ratio
+# proportional to the source PNG (905 x 644 ≈ 1.405:1).
+WATERMARK_W_PX = 10
 
-def _load_logo(target_w):
+
+def _load_logo():
     if LOGO_PATH.exists():
         logo = Image.open(LOGO_PATH).convert("RGBA")
-        ratio = target_w / logo.width
-        target_h = max(1, int(logo.height * ratio))
-        logo = logo.resize((target_w, target_h), Image.LANCZOS)
     else:
-        logo = Image.new("RGBA", (target_w, 1), (0, 0, 0, 0))
+        logo = Image.new("RGBA", (WATERMARK_W_PX, WATERMARK_W_PX), (0, 0, 0, 0))
 
+    ratio = WATERMARK_W_PX / logo.width
+    target_h = max(1, int(logo.height * ratio))
+    logo = logo.resize((WATERMARK_W_PX, target_h), Image.LANCZOS)
+
+    # Chroma-key near-black pixels to transparent.
     px = logo.load()
     w, h = logo.size
     for y in range(h):
@@ -32,19 +38,22 @@ def _load_logo(target_w):
     return logo
 
 
-def burn_watermark(png_bytes, opacity=0.92):
+def burn_watermark(png_bytes, opacity=0.95):
+    """Composite the SLB logo into the bottom-right corner of the swapped PNG.
+
+    Logo is a fixed 10px wide badge. Margin = 16px from each edge.
+    """
     img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     w, h = img.size
 
-    target_w = max(96, int(w * 0.28))
-    logo = _load_logo(target_w)
+    logo = _load_logo()
     lw, lh = logo.size
 
     if opacity < 1.0:
         a = logo.split()[-1].point(lambda p: int(p * opacity))
         logo.putalpha(a)
 
-    margin = max(24, int(w * 0.02))
+    margin = 16
     pos = (w - lw - margin, h - lh - margin)
 
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
