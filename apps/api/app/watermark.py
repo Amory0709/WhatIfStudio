@@ -1,60 +1,91 @@
-"""Burn the SLB logo into swapped output as a tiny 10px corner badge."""
+"""Burn the SLB logo into the bottom-right corner of the swapped output.
+
+The logo is read from apps/api/assets/slb_logo.svg (brand-blue #0014dc
+fill on transparent background) and rasterised via cairosvg. We then
+hard-threshold the alpha channel so the watermark is fully opaque, no
+soft edges, no compositing transparency: every blue pixel is alpha=255,
+every background pixel is alpha=0. That keeps the burned mark looking
+like a printed brand stamp on the photo, not a translucent overlay.
+"""
 from __future__ import annotations
 
 import io
+import logging
 import os
 from pathlib import Path
 
 from PIL import Image
 
+log = logging.getLogger("whatif.watermark")
+
 API_DIR = Path(__file__).resolve().parent.parent
-LOGO_PATH = Path(os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb-logo.png")))
-BADGE_PATH = Path(os.getenv("WATERMARK_BADGE", str(API_DIR / "assets" / "slb-badge-rgba.png")))
+LOGO_PATH = Path(
+    os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb_logo.svg"))
+)
 
-WATERMARK_W_PX = 10
+# Badge size: ~6% of the long edge, clamped to a readable 140..320 px range.
+BADGE_FRAC = 0.18
+BADGE_MIN = 140
+BADGE_MAX = 320
+BADGE_MARGIN = 80
 
-# We pre-bake a chroma-keyed RGBA badge with a tighter threshold so anti-aliased
-# edges of the blue logo survive the 10x7 downsample. The badge asset should NOT
-# have any near-black pixels (they'd just get dropped on composite anyway).
+# Render the SVG at this width so the final downscale is crisp.
+RASTER_W = 1024
 
 
-def _load_badge():
-    if BADGE_PATH.exists():
-        return Image.open(BADGE_PATH).convert("RGBA")
-    KEY_THRESHOLD = 32
-    logo = Image.open(LOGO_PATH).convert("RGBA")
-    px = logo.load()
-    for y in range(logo.height):
-        for x in range(logo.width):
-            r, g, b, a = px[x, y]
-            if r <= KEY_THRESHOLD and g <= KEY_THRESHOLD and b <= KEY_THRESHOLD:
-                px[x, y] = (0, 0, 0, 0)
+def _rasterize_svg(path: Path) -> Image.Image:
+    """Convert an SVG to an RGBA Pillow image using cairosvg."""
+    import cairosvg  # lazy: only fails if cairo is missing at use time
+
+    png_bytes = cairosvg.svg2png(url=str(path), output_width=RASTER_W)
+    return Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+
+
+def _load_logo_opaque() -> Image.Image:
+    """Open the SLB logo (SVG or PNG), crop transparent edges, force alpha to 0 or 255."""
+    suffix = LOGO_PATH.suffix.lower()
+    if suffix == ".svg":
+        logo = _rasterize_svg(LOGO_PATH)
+    else:
+        logo = Image.open(LOGO_PATH).convert("RGBA")
+
+    # Hard threshold alpha so the burned mark has no soft edges.
+    alpha = logo.split()[-1]
+    alpha = alpha.point(lambda p: 255 if p >= 128 else 0)
+    logo.putalpha(alpha)
+
+    bbox = logo.getbbox()
+    if bbox:
+        logo = logo.crop(bbox)
     return logo
 
 
-def burn_watermark(png_bytes, opacity=1.0):
-    """Composite the SLB logo into the bottom-right corner as a 10px-wide badge.
-
-    Opacity defaults to 1.0 — the badge is already anti-aliased and we want
-    full color saturation in the bottom-right corner.
-    """
+def burn_watermark(png_bytes, opacity: float = 1.0) -> bytes:
+    """Composite the SLB logo into the bottom-right at ~6% of the long edge."""
     img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     w, h = img.size
 
-    badge = _load_badge()
-    ratio = WATERMARK_W_PX / badge.width
-    target_h = max(1, int(badge.height * ratio))
-    badge = badge.resize((WATERMARK_W_PX, target_h), Image.LANCZOS)
+    try:
+        glyph = _load_logo_opaque()
+    except FileNotFoundError:
+        log.warning("watermark logo not found at %s; skipping", LOGO_PATH)
+        return png_bytes
+    except Exception:
+        log.exception("watermark render failed; returning original image")
+        return png_bytes
 
-    if opacity < 1.0:
-        a = badge.split()[-1].point(lambda p: int(p * opacity))
-        badge.putalpha(a)
+    if glyph.width == 0 or glyph.height == 0:
+        return png_bytes
 
-    margin = 16
-    pos = (w - WATERMARK_W_PX - margin, h - target_h - margin)
+    badge_w = max(BADGE_MIN, min(BADGE_MAX, int(max(w, h) * BADGE_FRAC)))
+    ratio = badge_w / glyph.width
+    target_h = max(1, int(glyph.height * ratio))
+    glyph = glyph.resize((badge_w, target_h), Image.LANCZOS)
+
+    pos = (w - badge_w - BADGE_MARGIN, h - target_h - BADGE_MARGIN)
 
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    overlay.paste(badge, pos, badge)
+    overlay.paste(glyph, pos, glyph)
     out = Image.alpha_composite(img, overlay)
 
     buf = io.BytesIO()

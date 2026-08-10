@@ -30,7 +30,7 @@ export function ResultView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative flex flex-col items-center justify-center w-full h-full px-6 py-10"
+      className="relative flex flex-col items-center justify-start w-full h-full px-6 pt-24 md:pt-36 pb-10 overflow-y-auto"
     >
       {/* Printer + portrait centerpiece. The printer slot animates from top -> middle. */}
       <div className="relative w-64 md:w-80 flex flex-col items-center">
@@ -55,7 +55,7 @@ export function ResultView({
             <img
               src={imageUrl}
               alt="Printed Portrait"
-              className="w-full h-full object-cover contrast-125 sepia-[.3]"
+              className="w-full h-full object-contain bg-muted/40"
             />
             {/* SLB watermark — fixed at top-right of the printed sheet. */}
             <div className="absolute top-3 right-3 font-sans italic text-xl text-white drop-shadow-md mix-blend-overlay">

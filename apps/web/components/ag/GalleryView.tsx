@@ -16,14 +16,18 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const handleDragEnd = (_e: any, { offset }: any) => {
-    const swipe = offset.x;
-    const itemsToMove = Math.round(-swipe / 100);
+  const handleDragEnd = (_e: any, info: any) => {
+    // info.offset is the cumulative drag distance (unclamped now that
+    // dragConstraints are removed). ~80px ≈ one card width on the
+    // 280px-wide carousel.
+    const swipe = info.offset.x;
+    const itemsToMove = Math.round(-swipe / 80);
     if (itemsToMove !== 0) {
       setCurrentIndex((prev) => prev + itemsToMove);
-    } else {
-      if (swipe < -30) setCurrentIndex((p) => p + 1);
-      if (swipe > 30) setCurrentIndex((p) => p - 1);
+    } else if (swipe < -30) {
+      setCurrentIndex((p) => p + 1);
+    } else if (swipe > 30) {
+      setCurrentIndex((p) => p - 1);
     }
   };
 
@@ -74,8 +78,9 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
           <motion.div
             className="relative w-full h-full flex items-center justify-center preserve-3d"
             drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.05}
+            dragSnapToOrigin
+            dragElastic={0.2}
+            dragMomentum={false}
             onDragEnd={handleDragEnd}
           >
             {items.map((img, index) => {
@@ -129,7 +134,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                       'w-full h-full relative overflow-hidden bg-muted transition-all duration-700 ' +
                       (isCenter
                         ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
-                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100')
+                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
                     }
                     style={{ backfaceVisibility: 'hidden' }}
                   >
@@ -145,7 +150,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                       'absolute inset-0 w-full h-full overflow-hidden bg-muted transition-all duration-700 ' +
                       (isCenter
                         ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
-                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100')
+                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
                     }
                     style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
                   >

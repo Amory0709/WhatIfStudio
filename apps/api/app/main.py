@@ -77,7 +77,7 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
         log.exception("swap failed (full traceback below)")
         raise HTTPException(500, "Swap engine error")
 
-    final = burn_watermark(swapped_png, opacity=0.85)
+    final = burn_watermark(swapped_png, opacity=1.0)
 
     return Response(
         content=final,

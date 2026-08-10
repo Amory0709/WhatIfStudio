@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Upload, X } from 'lucide-react';
+import { Camera, Loader2, Upload, X } from 'lucide-react';
 import { AgreementModal } from './AgreementModal';
 import { GradientTile } from './GradientTile';
 import type { AGArtwork } from './types';
@@ -13,6 +13,9 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const [showCam, setShowCam] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [finishedIn, setFinishedIn] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -61,6 +64,10 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const runSwap = async (f: File) => {
     setBusy(true);
     setError(null);
+    setFinishedIn(null);
+    const t0 = Date.now();
+    setStartedAt(t0);
+    setElapsed(0);
     try {
       const fd = new FormData();
       fd.append('source_id', target.id);
@@ -76,13 +83,24 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       sessionStorage.setItem('print:' + target.id, url);
+      setFinishedIn(Math.round((Date.now() - t0) / 1000));
       onComplete(url);
     } catch (e: any) {
       setError(e?.message || 'Something went wrong');
     } finally {
       setBusy(false);
+      setStartedAt(null);
     }
   };
+
+  // Tick the elapsed-seconds counter while busy.
+  useEffect(() => {
+    if (!startedAt) return;
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 250);
+    return () => clearInterval(id);
+  }, [startedAt]);
 
   const onFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -171,10 +189,12 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
           </button>
         </div>
 
-        {busy && (
-          <p className="mt-8 font-sans text-xs uppercase tracking-widest text-muted-foreground animate-pulse">
-            Composing portrait…
-          </p>
+        {(busy || finishedIn !== null) && (
+          <ComposingProgress
+            elapsed={elapsed}
+            finishedIn={finishedIn}
+            busy={busy}
+          />
         )}
         {error && (
           <p className="mt-4 rounded border border-rust/30 bg-rust/5 p-3 text-sm text-rust">{error}</p>
@@ -214,6 +234,88 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
           />
         )}
       </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ComposingProgress
+//
+// Prominent, gallery-style "composing" indicator. Replaces the tiny pulsing
+// line that was easy to miss: now a card with a spinning ring, an elapsed
+// counter, and a soft ~30 s estimate (InsightFace + inswapper on a single
+// source/face takes ~30 s on M-series CPUs). Once the swap resolves we
+// freeze on the final elapsed time for ~1.2 s so the user can see how long
+// it actually took before we hand off to the print view.
+// ---------------------------------------------------------------------------
+function ComposingProgress({
+  elapsed,
+  finishedIn,
+  busy,
+}: {
+  elapsed: number;
+  finishedIn: number | null;
+  busy: boolean;
+}) {
+  const ESTIMATE_SECONDS = 30;
+  const pct = Math.min(100, Math.round((elapsed / ESTIMATE_SECONDS) * 100));
+  const remaining = Math.max(0, ESTIMATE_SECONDS - elapsed);
+  const showFinished = !busy && finishedIn !== null;
+  const label = showFinished
+    ? `Composed in ${finishedIn}s`
+    : `Composing portrait · ${elapsed}s`;
+  const sub = showFinished
+    ? 'Preparing your print…'
+    : remaining > 0
+    ? `About ${remaining}s remaining (typical)`
+    : 'Almost there — finishing the final pass…';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="mt-8 flex items-center gap-4 rounded-[3px] border border-primary/30 bg-primary/5 px-5 py-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="relative h-10 w-10 shrink-0">
+        <svg viewBox="0 0 40 40" className="h-10 w-10 -rotate-90">
+          <circle
+            cx="20"
+            cy="20"
+            r="17"
+            fill="none"
+            stroke="white"
+            strokeWidth="3"
+            className="text-primary/15"
+          />
+          <circle
+            cx="20"
+            cy="20"
+            r="17"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={2 * Math.PI * 17}
+            strokeDashoffset={(2 * Math.PI * 17) * (1 - pct / 100)}
+            className="text-primary transition-[stroke-dashoffset] duration-500 ease-out"
+          />
+        </svg>
+        {busy && (
+          <Loader2 className="absolute inset-0 m-auto h-4 w-4 animate-spin text-primary" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="font-sans italic text-lg text-foreground leading-tight">
+          {label}
+        </div>
+        <div className="mt-0.5 font-sans text-xs text-muted-foreground">
+          {sub}
+        </div>
+      </div>
     </motion.div>
   );
 }
