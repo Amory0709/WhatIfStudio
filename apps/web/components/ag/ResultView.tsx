@@ -42,7 +42,7 @@ export function ResultView({
         {/* Image well — height grows with the printer so the caption below never collides. */}
         <div
           className={
-            'relative w-[90%] overflow-hidden z-10 transition-all duration-500 ' +
+            'relative w-[90%] overflow-hidden z-10 flex items-center justify-center transition-all duration-500 ' +
             (printComplete ? 'h-[420px] md:h-[480px]' : 'h-[360px] md:h-[420px]')
           }
         >
@@ -50,17 +50,13 @@ export function ResultView({
             initial={{ y: '-100%' }}
             animate={{ y: printComplete ? '0%' : '0%' }}
             transition={{ duration: 4, ease: 'linear' }}
-            className="w-full aspect-[2/3] relative bg-white p-2 shadow-xl border border-border"
+            className="w-[85%] aspect-[2/3] relative bg-white p-2 shadow-xl border border-border"
           >
             <img
               src={imageUrl}
               alt="Printed Portrait"
               className="w-full h-full object-contain bg-muted/40"
             />
-            {/* SLB watermark — fixed at top-right of the printed sheet. */}
-            <div className="absolute top-3 right-3 font-sans italic text-xl text-white drop-shadow-md mix-blend-overlay">
-              SLB
-            </div>
           </motion.div>
 
           {/* Scan line that sweeps top -> bottom during print */}
