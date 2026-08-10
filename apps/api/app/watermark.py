@@ -23,14 +23,13 @@ LOGO_PATH = Path(
     os.getenv("WATERMARK_LOGO", str(API_DIR / "assets" / "slb_logo.svg"))
 )
 
-# Badge size: ~6% of the long edge, clamped to a readable 140..320 px range.
-BADGE_FRAC = 0.18
-BADGE_MIN = 140
-BADGE_MAX = 320
-BADGE_MARGIN = 80
+# Badge size: 30% of the long edge (bold brand stamp on the print).
+BADGE_FRAC = 0.30
+BADGE_MIN = 100
+BADGE_MARGIN_FRAC = 0.02  # 2% of each photo dimension
 
 # Render the SVG at this width so the final downscale is crisp.
-RASTER_W = 1024
+RASTER_W = 4096
 
 
 def _rasterize_svg(path: Path) -> Image.Image:
@@ -49,7 +48,6 @@ def _load_logo_opaque() -> Image.Image:
     else:
         logo = Image.open(LOGO_PATH).convert("RGBA")
 
-    # Hard threshold alpha so the burned mark has no soft edges.
     alpha = logo.split()[-1]
     alpha = alpha.point(lambda p: 255 if p >= 128 else 0)
     logo.putalpha(alpha)
@@ -61,7 +59,7 @@ def _load_logo_opaque() -> Image.Image:
 
 
 def burn_watermark(png_bytes, opacity: float = 1.0) -> bytes:
-    """Composite the SLB logo into the bottom-right at ~6% of the long edge."""
+    """Composite the SLB logo into the bottom-right at 70% of the long edge."""
     img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
     w, h = img.size
 
@@ -77,12 +75,14 @@ def burn_watermark(png_bytes, opacity: float = 1.0) -> bytes:
     if glyph.width == 0 or glyph.height == 0:
         return png_bytes
 
-    badge_w = max(BADGE_MIN, min(BADGE_MAX, int(max(w, h) * BADGE_FRAC)))
+    badge_w = max(BADGE_MIN, int(max(w, h) * BADGE_FRAC))
     ratio = badge_w / glyph.width
     target_h = max(1, int(glyph.height * ratio))
     glyph = glyph.resize((badge_w, target_h), Image.LANCZOS)
 
-    pos = (w - badge_w - BADGE_MARGIN, h - target_h - BADGE_MARGIN)
+    mx = int(w * BADGE_MARGIN_FRAC)
+    my = int(h * BADGE_MARGIN_FRAC)
+    pos = (w - badge_w - mx, h - target_h - my)
 
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     overlay.paste(glyph, pos, glyph)
