@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent template for cloudflared — populated by deploy-macmini.sh.
+  Placeholders substituted at deploy time:
+    __CLOUDFLARED_BIN__  →  path to cloudflared binary (Homebrew)
+    __LOG_DIR__         →  directory for stdout/stderr logs
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.whatif.cloudflared</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__CLOUDFLARED_BIN__</string>
+    <string>tunnel</string>
+    <string>--url</string>
+    <string>http://127.0.0.1:7860</string>
+    <string>--no-autoupdate</string>
+  </array>
+
+  <!-- Start automatically when the user logs in -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart if it crashes (but not if it exits cleanly) -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>Crashed</key>
+    <true/>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <!-- Throttle restart attempts to once per 10s (avoids crash loops) -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>__LOG_DIR__/cloudflared.log</string>
+  <key>StandardErrorPath</key>
+  <string>__LOG_DIR__/cloudflared.log</string>
+
+  <!-- macOS process type: agent (background, no UI) -->
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

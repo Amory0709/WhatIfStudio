@@ -1,3 +1,14 @@
+---
+title: WhatIf Studio
+emoji: 🎭
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # WhatIf Studio
 
 A monorepo demo that lets visitors **swap their face onto fictional gallery portraits** using a local face-swap engine, then walk away with a watermarked print. Built as a blue-and-white minimalist "art gallery" experience — every card is pre-selected, the centerpiece is a giant floating numeral, and the result page prints out on a slot-fed printer with a `SLB` watermark.
@@ -57,3 +68,48 @@ CORS is enabled for `http://localhost:3000`, `http://127.0.0.1:3000`, and IPv6 `
 - The homepage is a 3D dual-circle "infinity loop" gallery. 50 cards are placed on the surface of two interlocked tori; the camera sits above and looks down at `rotateX(-35deg)`. A 1800-px blue `1` floats under the camera as the visual focal point.
 - All motion uses framer-motion springs; the printer animation slides the printed portrait from `y: -100%` to its resting place over 4 seconds, then reveals the `Download Print` and `Back to Homepage` actions below.
 - Fonts are vendored `SLBSans` (Regular + Bold woff2) from the SLB 100 Family Day repository — no Google Fonts CDN traffic.
+
+## 🚀 Deploy
+
+The repo ships with a multi-stage `Dockerfile` (builds Next.js, then packages with FastAPI on port 7860) and platform configs for the two cheapest reasonable targets.
+
+### Option A — Fly.io (recommended, ~$2/month, HR-friendly)
+
+```bash
+brew install flyctl            # or: curl -L https://fly.io/install.sh | sh
+fly auth signup                # browser pop-up for login
+fly launch --copy-config       # reads fly.toml — skip Postgres when asked
+fly deploy                     # builds + pushes + releases (~4 min)
+fly open                       # → https://whatif-studio.fly.dev
+```
+
+Then in the Fly.io dashboard → **GitHub → Connect** for one-click redeploy on every push. Custom domain is one command: `fly certs add yourdomain.com`.
+
+### Option B — Hugging Face Spaces (free, but Docker SDK is paid now)
+
+Only Static SDK is free on HF; Docker/Gradio require a paid plan. Use Fly.io above.
+
+### Option C — Oracle Cloud Always Free (truly free, ~15 min setup)
+
+2 OCPU / 12 GB RAM ARM instance, **permanently**. CC required for signup. The "out of host capacity" error is common in popular regions — try Seoul/Tokyo/Sydney first. See [docs/DEPLOY-ORACLE.md](docs/DEPLOY-ORACLE.md).
+
+### Option D — Any Docker host (Hetzner CX22 €3.29/mo, DO $4/mo, Vultr $5/mo, etc.)
+
+Same `Dockerfile` works everywhere:
+```bash
+docker build -t whatif . && docker run -d -p 80:7860 --name whatif --restart=always whatif
+```
+
+### Option E — Your own Mac mini (¥5/month electricity, fastest swap speed)
+
+Best for a single-day high-frequency demo. Apple Silicon runs InsightFace +
+ONNX ~5× faster than a shared cloud CPU. Uses [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+so no port forwarding needed.
+
+One command on the Mac mini:
+```bash
+curl -fsSL https://raw.githubusercontent.com/Amory0709/WhatIfStudio/main/infra/macmini/deploy-macmini.sh | bash
+```
+
+See [docs/DEPLOY-MACMINI.md](docs/DEPLOY-MACMINI.md) for the full plan,
+operations guide, and custom-domain setup.
