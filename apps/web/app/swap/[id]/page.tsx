@@ -3,6 +3,16 @@ import { loadOne, loadGallery } from "@/lib/gallery";
 import { StudioShell } from "@/components/ag/StudioShell";
 import { buildAGItems } from "@/components/ag/types";
 
+// Pre-render every gallery ID at build time. With output: 'export' this is
+// required — runtime dynamic routes don't exist in a static build.
+export async function generateStaticParams() {
+  const all = await loadGallery();
+  return all.map((a) => ({ id: a.id }));
+}
+
+// Unknown IDs fall back to Next.js's 404 page rather than crashing at runtime.
+export const dynamicParams = false;
+
 export default async function SwapPage({ params }: { params: { id: string } }) {
   const all = await loadGallery();
   const items = buildAGItems(all);

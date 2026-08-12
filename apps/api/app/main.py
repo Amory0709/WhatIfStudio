@@ -1,14 +1,23 @@
-"""FastAPI app for WhatIfStudio face-swap service."""
+"""FastAPI app for WhatIfStudio face-swap service.
+
+In production (Hugging Face Spaces / Docker) this single process serves BOTH:
+  - the JSON / image API under /api/* and /health
+  - the static Next.js export under /
+
+Both come out of one port (default 7860) on the same origin, so the browser
+can hit `/api/swap` directly with no proxy / CORS ceremony. In local dev,
+leave WEB_OUT_DIR unset and run `next dev` on :3000 separately.
+"""
 from __future__ import annotations
 
 import logging
 import os
-import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 
 from .ethics import validate_face_upload
 from .swap import perform_swap
@@ -17,23 +26,20 @@ from .watermark import burn_watermark
 log = logging.getLogger("whatif")
 logging.basicConfig(level=logging.INFO)
 
-# __file__ = apps/api/app/main.py -> parent x4 = repo root (whatifstudio/)
-ROOT_DIR = Path(__file__).resolve().parents[3]
-GALLERY_DIR = ROOT_DIR / "apps" / "web" / "public" / "gallery"
+# Paths — all env-configurable so the image works in Docker AND on a dev box.
+# Defaults match the Dockerfile layout (see Dockerfile).
+GALLERY_DIR = Path(os.environ.get("GALLERY_DIR", "/app/web_out/gallery")).resolve()
+WEB_OUT_DIR = Path(os.environ.get("WEB_OUT_DIR", "/app/web_out")).resolve()
 
 app = FastAPI(title="WhatIf Studio API", version="0.1.0")
 
-_default_dev_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://[::1]:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
+# CORS: in production we serve same-origin so this is moot. In dev with the
+# Next.js dev server on :3000 talking to FastAPI on :8000, set
+# ALLOWED_ORIGIN="http://localhost:3000,http://127.0.0.1:3000".
 _env_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGIN", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_env_origins or _default_dev_origins,
+    allow_origins=_env_origins or ["*"],
     allow_credentials=False,
     allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
@@ -57,34 +63,82 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
         GALLERY_DIR / f"{source_id}.png",
         GALLERY_DIR / f"{source_id}.webp",
     ]
-    log.info("swap lookup: GALLERY_DIR=%s source_id=%s candidates=%s exists=%s",
-             GALLERY_DIR, source_id, [str(c) for c in candidates], [c.exists() for c in candidates])
-    source_path = next((p for p in candidates if p.exists()), None)
-    if not source_path:
-        raise HTTPException(404, f"No artwork for id={source_id} (gallery dir={GALLERY_DIR})")
+    source_path = next((p for p in candidates if p.is_file()), None)
+    if source_path is None:
+        raise HTTPException(404, f"Unknown portrait id: {source_id}")
 
-    job_id = uuid.uuid4().hex[:10]
+    log.info("swap: source_id=%s source_path=%s upload_size=%d", source_id, source_path, len(face_bytes))
+
     try:
-        swapped_png = perform_swap(
-            source_path=str(source_path),
-            face_bytes=face_bytes,
-            job_id=job_id,
-        )
+        swapped = perform_swap(str(source_path), face_bytes, job_id="swap")
     except ValueError as e:
-        log.warning("swap ValueError: %s", e)
+        log.warning("swap failed: %s", e)
         raise HTTPException(400, str(e))
     except Exception:
-        log.exception("swap failed (full traceback below)")
-        raise HTTPException(500, "Swap engine error")
+        log.exception("swap crashed")
+        raise HTTPException(500, "Swap engine crashed")
 
-    final = burn_watermark(swapped_png, opacity=1.0)
+    try:
+        watermarked = burn_watermark(swapped)
+    except Exception:
+        log.exception("watermark failed; returning original")
+        watermarked = swapped
 
     return Response(
-        content=final,
+        content=watermarked,
         media_type="image/png",
-        headers={
-            "X-WhatIf-Job": job_id,
-            "X-WhatIf-Watermarked": "slb-1",
-            "Cache-Control": "no-store",
-        },
+        headers={"X-WhatIf-Job": "swap", "X-WhatIf-Watermarked": "1"},
     )
+
+
+# ---------------------------------------------------------------------------
+# Static serving for the Next.js export (apps/web/out/).
+# Mounted AFTER /api/* so API routes always win.
+# ---------------------------------------------------------------------------
+
+class StaticWithFallback:
+    """Starlette-compatible ASGI app: serves files from `directory`, but
+    rewrites pathless segment requests like `/swap/amber-1` to
+    `/swap/amber-1.html` (Next.js static export layout) and falls back to
+    `index.html` for unknown SPA paths.
+    """
+
+    def __init__(self, directory: str):
+        self.directory = Path(directory)
+        self.static = StaticFiles(directory=directory, html=False)
+        self.index_html = self.directory / "index.html"
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.static(scope, receive, send)
+
+        path = (scope.get("path") or "/").rstrip("/") or "/"
+        rel = path.lstrip("/")
+
+        # Try as a direct file
+        if (self.directory / rel).is_file():
+            return await self.static(scope, receive, send)
+
+        # Try `*.html` (Next.js places pre-rendered pages under .html)
+        html_path = self.directory / (rel + ".html")
+        if html_path.is_file():
+            scope = dict(scope)
+            scope["path"] = rel + ".html"
+            return await self.static(scope, receive, send)
+
+        # No extension → SPA fallback to index.html
+        last = rel.rsplit("/", 1)[-1]
+        if "." not in last and self.index_html.is_file():
+            scope = dict(scope)
+            scope["path"] = "index.html"
+            return await self.static(scope, receive, send)
+
+        # Otherwise let StaticFiles emit its 404
+        return await self.static(scope, receive, send)
+
+
+if WEB_OUT_DIR.is_dir():
+    log.info("serving static web from %s", WEB_OUT_DIR)
+    app.mount("/", StaticWithFallback(str(WEB_OUT_DIR)), name="web")
+else:
+    log.info("WEB_OUT_DIR=%s not present; running API-only", WEB_OUT_DIR)

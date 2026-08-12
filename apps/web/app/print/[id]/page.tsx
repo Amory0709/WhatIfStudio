@@ -3,6 +3,13 @@ import { loadOne, loadGallery } from "@/lib/gallery";
 import { StudioShell } from "@/components/ag/StudioShell";
 import { buildAGItems } from "@/components/ag/types";
 
+export async function generateStaticParams() {
+  const all = await loadGallery();
+  return all.map((a) => ({ id: a.id }));
+}
+
+export const dynamicParams = false;
+
 export default async function PrintPage({ params }: { params: { id: string } }) {
   const all = await loadGallery();
   const items = buildAGItems(all);

@@ -72,10 +72,11 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       const fd = new FormData();
       fd.append('source_id', target.id);
       fd.append('face', f);
-      // Hit FastAPI directly. Going through Next.js dev proxy (`/api/swap`)
-      // triggers a ~30s socket hang-up while the CPU-bound face-swap is still
-      // running; bypassing the proxy lets the ~30s request complete cleanly.
-      const r = await fetch('http://127.0.0.1:8000/api/swap', { method: 'POST', body: fd });
+      // Same-origin in production (FastAPI serves both API + static on :7860).
+      // Override with NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 when running
+      // the Next.js dev server on :3000 with a separate FastAPI on :8000.
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+      const r = await fetch(`${API_BASE}/api/swap`, { method: 'POST', body: fd });
       if (!r.ok) {
         const d = (await r.json().catch(() => ({}))).detail;
         throw new Error(d || 'Swap failed');

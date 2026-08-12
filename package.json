@@ -1,10 +1,17 @@
-{ 
-    "name": "whatifstudio", 
-    "private": true, 
-    "version": "0.1.0", 
-    "workspaces": ["apps/*"], 
-    "scripts": { 
-        "dev:web": "npm --workspace apps/web run dev", 
-        "dev:api": "npm --workspace apps/api run dev" 
-    } 
+{
+  "name": "whatifstudio",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8000} npm --workspace apps/web run dev",
+    "dev:api": "cd apps/api && GALLERY_DIR=\"$(cd ../web/public/gallery && pwd)\" WHATIF_ENGINE_DIR=\"$(pwd)/engine\" .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "dev": "concurrently -k -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
+    "build:web": "npm --workspace apps/web run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
 }
