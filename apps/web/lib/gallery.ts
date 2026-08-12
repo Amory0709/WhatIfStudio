@@ -8,7 +8,6 @@ export type Artwork = {
   artist: string;
   year: number;
   palette: string;
-  mood: string;
   image?: string;
 };
 

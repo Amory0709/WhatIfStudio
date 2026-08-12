@@ -4,7 +4,6 @@ export type AGArtwork = {
   artist: string;
   year: number;
   palette: string;
-  mood: string;
   image?: string;
   subtitle?: string;
 };
@@ -47,7 +46,6 @@ export function buildAGItems(realItems: AGArtwork[]): AGArtwork[] {
         artist: r.artist ?? 'Curated',
         year: r.year ?? 2024,
         palette: r.palette ?? PALETTE_LABELS[i % PALETTE_LABELS.length],
-        mood: r.mood ?? '—',
         image: r.image ?? img,
       });
     } else {
@@ -57,7 +55,6 @@ export function buildAGItems(realItems: AGArtwork[]): AGArtwork[] {
         artist: 'Curated',
         year: 2024,
         palette: PALETTE_LABELS[i % PALETTE_LABELS.length],
-        mood: '—',
         image: img,
       });
     }
