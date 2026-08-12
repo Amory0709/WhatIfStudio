@@ -127,6 +127,76 @@ permanent URL like `https://whatif.yourdomain.com`:
 
 The URL `https://whatif.yourdomain.com` is now permanent.
 
+## Booth printer setup
+
+If you want one-tap physical prints from the "Print Here" button (no
+phone-pairing dance per visitor), pair a CUPS-aware photo printer to the
+Mac mini once, then expose its queue name to the container.
+
+Tested with the **Xiaomi Mi Home Photo Printer 1S** (dye-sub, 4R/3R/6 in).
+Any other AirPrint / CUPS 4R-capable dye-sub printer will also work — just
+adjust the `BOOTH_MEDIA` value to match the printer's CUPS media name.
+
+### 1. Pair the printer with the Mac (one-time)
+
+1. Install the printer's macOS driver. For the Xiaomi 1S:
+   <https://www.mi.com/global/service/support/> → search "Mi Home Photo
+   Printer 1S" → download the macOS driver `.pkg`. Reboot after install.
+2. Power on the printer, then **System Settings → Bluetooth** → pair it
+   under "Other Devices". (AirPrint over Wi-Fi also works if the printer
+   is on the same LAN.)
+3. **System Settings → Printers & Scanners** → confirm the printer shows
+   up with status "Idle". Right-click → "Print Test Page" to sanity-check
+   the colour curve and the 4R paper path.
+
+### 2. Find the CUPS queue name
+
+```bash
+lpstat -p -d
+# example output:
+#   printer Mi_Home_Photo_Printer_1S is idle.  enabled since ...
+#   system default destination: Mi_Home_Photo_Printer_1S
+```
+
+Note the exact queue name (case-sensitive, spaces matter).
+
+### 3. Tell the container about it
+
+Re-run the deploy script with `BOOTH_PRINTER_NAME` set, or `docker rm -f
+whatif && docker run ...` with `-e BOOTH_PRINTER_NAME=…`. The deploy
+script already forwards any `BOOTH_*` env vars it sees in the shell, so
+the minimal recipe is:
+
+```bash
+export BOOTH_PRINTER_NAME='Mi_Home_Photo_Printer_1S'   # ← exact name from `lpstat -p`
+export BOOTH_MEDIA='Custom.102x152mm'                  # 4R; macOS reports CUPS media
+                                                       # names as `Custom.WxHmm`.
+                                                       # Run `lpoptions -p <name> -l`
+                                                       # to list all available media.
+export BOOTH_COPIES=1
+export BOOTH_RESIZE_DPI=300
+export BOOTH_PRINT_TITLE='WhatIf Portrait'
+
+# optional: confirm lp reaches the printer from the container
+docker exec -it whatif lp -d "$BOOTH_PRINTER_NAME" \
+    -o "media=$BOOTH_MEDIA" -o "print-quality=5" \
+    /usr/share/doc/base-files/copyright   # any small file for the smoke test
+```
+
+Then reload the web UI: the "Print Here" button now appears automatically
+in `ResultView` (the frontend polls `/api/print/status` on mount and
+shows the button only when `available: true`).
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| "Print Here" button missing | `BOOTH_PRINTER_NAME` unset or empty in the container | `docker exec whatif env | grep BOOTH_` to confirm; redeploy with the var set |
+| `503 lp not found in PATH` | Container image missing CUPS client tools | macOS host has them, but the Docker image is Linux-based — `apt install cups-client` inside the image, or run the API directly on the host (without Docker) |
+| `500 Printer rejected job: …` | Wrong `BOOTH_MEDIA` name, paper out, or paper jam | `lpoptions -p <name> -l` to see valid media names; refill paper tray |
+| Print is cropped / wrong aspect | Paper size doesn't match the value in `BOOTH_MEDIA` | Match exactly. For 4R: `Custom.102x152mm`. For 6 in (Mijia Pro / 1S wide): `Custom.152x102mm`. |
+| Job stays "pending" forever | Bluetooth paired to phone, not the Mac | Forget the printer on the phone, re-pair under System Settings → Bluetooth |
+
 ## Operations
 
 | Action | Command |

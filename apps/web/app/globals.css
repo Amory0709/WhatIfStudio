@@ -61,4 +61,58 @@
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
+  /* Hidden on screen, revealed by the @media print block below. The
+     ResultView's "Print via My Device" button calls window.print() after
+     filling this container with the watermarked portrait, so the OS
+     print dialog ships a clean 4R-only page regardless of on-screen
+     chrome. */
+  .print-only { display: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Print styles — used by window.print() (the "Print via My Device" path).
+   Strips all on-screen chrome and reveals ONLY .print-only. Page size is
+   hinted as 4R (102 × 152 mm); the OS print dialog overrides this if the
+   chosen printer can't honour it.
+   --------------------------------------------------------------------------- */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything by default. */
+  body * { visibility: hidden !important; }
+
+  /* Reveal the print container and its image. */
+  .print-only,
+  .print-only * { visibility: visible !important; }
+
+  .print-only {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .print-only img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Hint the page size as 4R. iOS / Android / desktop print dialogs will
+  // override this if the chosen printer can't honour the custom size. */
+  @page {
+    margin: 0;
+    size: 102mm 152mm;
+  }
 }

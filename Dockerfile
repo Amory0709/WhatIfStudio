@@ -48,21 +48,21 @@ WORKDIR /app
 COPY apps/api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# API code + engine (Python modules + assets; models downloaded below)
+# API code + engine (Python modules + assets; vendored with the engine)
 COPY apps/api/app/ ./app/
 COPY apps/api/engine/ ./engine/
 COPY apps/api/assets/ ./app/assets/
 
-# Download the swap model at build time. The repo's .gitignore excludes
-# apps/api/engine/models/, so HF Spaces (which syncs via git) never receives
-# them. We pull from the public Deep-Live-Cam mirror on Hugging Face.
-#   - inswapper_128.onnx     — face-swap weights (~265 MB, used at runtime)
-# GFPGAN / CoreML models are NOT used by our swap path, so we skip them to
-# keep the image lean.
-ARG INSWAPPER_URL=https://huggingface.co/hacksider/deep-live-cam/resolve/main/inswapper_128.onnx
-RUN mkdir -p /app/engine/models \
-    && curl -fL --retry 3 --retry-delay 5 -o /app/engine/models/inswapper_128.onnx "${INSWAPPER_URL}" \
-    && ls -la /app/engine/models/
+# inswapper_128.onnx and buffalo_l/ are checked into the repo (apps/api/engine/models/)
+# and tracked via Git LFS, so the COPY step above already brings them into the image.
+# No build-time network fetch needed — first push is ~620 MB slower, but every
+# subsequent deploy reuses the same layers and starts immediately.
+#
+# Models NOT vendored (intentionally):
+#   - inswapper_128_fp16.onnx  : only loaded when CUDA GPU is present
+#   - inswapper_128_coreml.onnx: only loaded on Apple Silicon native
+#   - GFPGANv1.4.pth           : our swap path skips the enhancer
+#   - buffalo_l.zip            : we ship the unpacked dir
 
 # Pre-built Next.js static export from stage 1
 COPY --from=web-builder /build/out/ ./web_out/
