@@ -74,13 +74,26 @@ _FACE_APP_SINGLETON: Optional[object] = None
 
 
 def _get_face_app():
+    """Build a single FaceAnalysis instance that loads buffalo_l/ from the repo.
+
+    The root is the project-local ``<engine>/models/.insightface`` directory
+    (shipped via Git LFS, see .gitattributes). This keeps face detection fully
+    self-contained — no symlinks, no host-specific paths like ``~/.insightface``
+    or ``/Volumes/ZX10``. ``WHATIF_INSIGHTFACE_ROOT`` env overrides for ops.
+    """
     global _FACE_APP_SINGLETON
     if _FACE_APP_SINGLETON is not None:
         return _FACE_APP_SINGLETON
+    root = os.environ.get("WHATIF_INSIGHTFACE_ROOT") or os.path.join(
+        os.environ.get("WHATIF_ENGINE_DIR", "."), "models", ".insightface"
+    )
     try:
         from insightface.app import FaceAnalysis
-        _FACE_APP_SINGLETON = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+        _FACE_APP_SINGLETON = FaceAnalysis(
+            name="buffalo_l", root=root, providers=["CPUExecutionProvider"]
+        )
         _FACE_APP_SINGLETON.prepare(ctx_id=-1, det_size=(320, 320))
     except Exception:
+        log.warning("FaceAnalysis init failed (root=%s); face pre-check disabled", root)
         _FACE_APP_SINGLETON = None
     return _FACE_APP_SINGLETON

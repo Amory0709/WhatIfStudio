@@ -17,6 +17,13 @@ FACE_ANALYSER_LOCK = threading.Lock()
 
 DET_SIZE = (640, 640)
 
+# Project-local insightface root: buffalo_l/ is vendored under
+# <engine>/models/.insightface/models/buffalo_l/ (tracked via Git LFS).
+# WHATIF_INSIGHTFACE_ROOT env lets ops override for air-gapped setups.
+_INSIGHTFACE_ROOT = os.environ.get("WHATIF_INSIGHTFACE_ROOT") or os.path.join(
+    os.environ.get("WHATIF_ENGINE_DIR", "."), "models", ".insightface"
+)
+
 
 def get_face_analyser() -> Any:
     """Get face analyser with thread-safe initialization."""
@@ -32,6 +39,7 @@ def get_face_analyser() -> Any:
                 providers = build_provider_config()
                 FACE_ANALYSER = insightface.app.FaceAnalysis(
                     name='buffalo_l',
+                    root=_INSIGHTFACE_ROOT,
                     providers=providers,
                     allowed_modules=['detection', 'recognition', 'landmark_2d_106']
                 )

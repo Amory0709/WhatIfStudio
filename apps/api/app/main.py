@@ -20,6 +20,7 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from .ethics import validate_face_upload
+from .print import router as print_router
 from .swap import perform_swap
 from .watermark import burn_watermark
 
@@ -89,6 +90,13 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
         media_type="image/png",
         headers={"X-WhatIf-Job": "swap", "X-WhatIf-Watermarked": "1"},
     )
+
+
+# ---------------------------------------------------------------------------
+# Booth printer bridge — see apps/api/app/print.py for details.
+# Mounted BEFORE the static fallback so /api/print/* is never 404'd.
+# ---------------------------------------------------------------------------
+app.include_router(print_router)
 
 
 # ---------------------------------------------------------------------------
