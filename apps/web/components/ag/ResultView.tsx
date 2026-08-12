@@ -115,7 +115,7 @@ export function ResultView({
             it slides down from above. No flex centering: the photo
             sits at the top of the well, so its top edge is visually
             flush with the slot's bottom edge. */}
-        <div className="relative w-[90%] overflow-hidden z-10">
+        <div className="relative w-[90%] z-10">
           <motion.div
             // Re-trigger the slide animation when the user navigates
             // between different prints (different imageUrl → different key).
