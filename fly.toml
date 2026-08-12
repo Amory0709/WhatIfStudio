@@ -1,0 +1,60 @@
+# Fly.io config — the Dockerfile stays the same; this just tells Fly.io how to
+# run it. ~$2/month (shared-cpu-1x / 1 GB RAM), no sleep, GitHub auto-deploy.
+#
+# Deploy: `fly launch` once (creates app + Postgres if asked, skip Postgres),
+# then `fly deploy` or push to GitHub and Fly builds it on every commit.
+
+app = "whatif-studio"
+primary_region = "sin"   # Singapore — closest to you. Change to hkg/nrt/icn if you want.
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "7860"           # what Dockerfile EXPOSE — keep aligned
+  MAX_UPLOAD_MB = "10"
+  ALLOWED_ORIGIN = "*"
+
+# One service, one machine, two public ports (80 → force HTTPS, 443 → TLS).
+# Internal port is what the container listens on (7860).
+[[services]]
+  internal_port = 7860
+  protocol = "tcp"
+  auto_stop_machines = false        # never sleep — keeps warm for face-swap
+  auto_start_machines = true
+  min_machines_running = 1          # always at least one running (no cold start)
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+    method = "get"
+    path = "/health"
+
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+
+# shared-cpu-1x / 1 GB RAM is the cheapest size that fits the ONNX runtime +
+# InsightFace model (~800 MB resident). For multi-user concurrency, bump
+# memory = "2gb" ($3.50/mo) or run 2 machines at $3.88/mo total.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

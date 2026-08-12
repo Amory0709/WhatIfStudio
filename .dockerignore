@@ -1,0 +1,24 @@
+# Build artefacts we don't need in the docker context
+.git
+.gitignore
+.DS_Store
+node_modules
+**/node_modules
+**/__pycache__
+**/.venv
+**/server.log
+**/.next
+**/out
+docs
+
+# Editors / OS
+.vscode
+.idea
+*.swp
+
+# Skip everything except README.md (HF Spaces needs it for metadata) and the
+# apps/ tree (which the Dockerfile copies explicitly).
+*
+!apps/
+!README.md
+!Dockerfile

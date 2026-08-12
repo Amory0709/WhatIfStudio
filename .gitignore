@@ -5,6 +5,14 @@ node_modules/
 *.tsbuildinfo
 next-env.d.ts
 .pnpm-store/
+# Next.js static export (`output: 'export'`); rebuilt by Docker / CI
+out/
+
+# Fly.io machine state
+.fly/
+
+# Python bytecode (regenerated at build)
+**/*.pyo
 
 # ─── Python / FastAPI / swap engine ────────────────────────────────────
 **/.venv/
