@@ -1,19 +1,27 @@
 # /public/gallery
 
-Portrait JPEGs used by both the web front-end and the FastAPI swap endpoint.
+JPEG portraits loaded by the web front-end (`apps/web/lib/gallery.ts`) and the FastAPI `/api/swap` endpoint. Metadata (title, artist, year, palette) lives in `data/gallery.json`; this directory holds the image files only.
 
-## Files
+## Contents
 
-| File             | Role                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------ |
-| `ag-1.jpg` … `ag-12.jpg` | 12 portrait photos cycled across the 50-card 3D gallery track (1:1 from the AG App demo). All under 250 KB. |
-| `amber-1.jpg`   | Curated gallery portrait used as a face-swap **target** (the artwork the user's face is composited onto). Real photo, 2.3 MB. |
-| `salt-2.jpg`    | Real demo **face source** — a portrait of a person whose face is supplied to the swap engine. 1.0 MB. |
+14 photos, in three groups:
+
+- **Tier 2 — People** (9): industrial operations — armoring, CHX manufacturing/production, offshore drilling, land operations, lead extrusion.
+- **Tier 2 — Project** (3): Electris Completions at the CHPC, Ardmore (Houston).
+- **Family Day** (2): `family-day-9-4inch.jpg`, `family-day-19-4inch.jpg`.
+
+Per-file `title` and `palette` are defined in `data/gallery.json`.
 
 ## Naming convention
 
-`<slug>-<n>.jpg` where `<slug>` is the palette label (`amber`, `salt`, etc.) and `<n>` is the variant number. The FastAPI `/api/swap` endpoint looks up the target by the artwork's `id` field, e.g. `source_id=amber-1` → `/public/gallery/amber-1.jpg`.
+All filenames are **kebab-case slugs**: lowercase, with spaces and underscores replaced by `-`. The `id` field in `data/gallery.json` is the filename **without** the extension. `gallery.ts` resolves `id + ".jpg" / ".jpeg" / ".png" / ".webp"` against this directory, so the id and the basename must match exactly.
+
+Example:
+- `data/gallery.json` → `"id": "tier-2-people-drilling-offshore-operations-el-nido-asa-3917-4inch"`
+- file on disk → `tier-2-people-drilling-offshore-operations-el-nido-asa-3917-4inch.jpg`
 
 ## Adding new art
 
-Drop a JPEG (or PNG/WebP) into this directory and ensure its filename matches an artwork id from `apps/web/lib/gallery.ts`. The swap pipeline supports `.jpg`, `.jpeg`, `.png`, and `.webp` extensions.
+1. Drop a `.jpg` / `.jpeg` / `.png` / `.webp` into this directory using a kebab-case slug as the basename.
+2. Add an entry to `data/gallery.json` with `id` equal to that slug (no extension).
+3. The swap pipeline picks it up automatically — no code changes needed.
