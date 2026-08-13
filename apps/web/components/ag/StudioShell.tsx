@@ -26,7 +26,8 @@ export function StudioShell({
   initialStep?: Step;
   initialPrintUrl?: string | null;
 }) {
-  const findById = (id?: string) => (id ? items.find((i) => i.id === id) : undefined);
+  const findById = (id?: string) =>
+    id ? items.find((i) => i.sourceId === id || i.id === id) : undefined;
   const initial = findById(initialId);
   const [step, setStep] = useState<Step>(initialStep ?? (initial ? 'detail' : 'gallery'));
   const [selected, setSelected] = useState<AGArtwork | null>(initial ?? null);
@@ -34,9 +35,10 @@ export function StudioShell({
     // SSR: only the route-supplied placeholder is available (sessionStorage is browser-only).
     if (typeof window === 'undefined') return initialPrintUrl ?? null;
     // Client: prefer the real swapped blob URL from sessionStorage when present.
-    if (initialId) {
+    const routeId = initial ? initial.sourceId : initialId;
+    if (routeId) {
       try {
-        const stored = sessionStorage.getItem('print:' + initialId);
+        const stored = sessionStorage.getItem('print:' + routeId);
         if (stored) return stored;
       } catch {}
     }
@@ -46,7 +48,7 @@ export function StudioShell({
   useEffect(() => {
     if (step === 'result' && !printUrl && selected) {
       try {
-        const url = sessionStorage.getItem('print:' + selected.id);
+        const url = sessionStorage.getItem('print:' + selected.sourceId);
         if (url) setPrintUrl(url);
       } catch {}
     }
@@ -55,21 +57,21 @@ export function StudioShell({
   const handleSelect = (img: AGArtwork) => {
     setSelected(img);
     setStep('detail');
-    if (typeof window !== 'undefined') window.history.replaceState(null, '', '/swap/' + img.id);
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', '/swap/' + img.sourceId);
   };
 
   const handleComplete = (url: string) => {
     setPrintUrl(url);
     setStep('result');
     if (typeof window !== 'undefined' && selected) {
-      window.history.replaceState(null, '', '/print/' + selected.id);
+      window.history.replaceState(null, '', '/print/' + selected.sourceId);
     }
   };
 
   const handleBack = () => {
     if (step === 'result') {
       setStep('detail');
-      if (typeof window !== 'undefined' && selected) window.history.replaceState(null, '', '/swap/' + selected.id);
+      if (typeof window !== 'undefined' && selected) window.history.replaceState(null, '', '/swap/' + selected.sourceId);
     } else if (step === 'detail') {
       setStep('gallery');
       setSelected(null);

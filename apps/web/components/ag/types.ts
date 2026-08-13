@@ -1,5 +1,8 @@
 export type AGArtwork = {
+  /** Unique carousel key (fig-N for filler slots). */
   id: string;
+  /** Gallery filename stem sent to POST /api/swap and used in /swap|/print routes. */
+  sourceId: string;
   title: string;
   artist: string;
   year: number;
@@ -7,6 +10,12 @@ export type AGArtwork = {
   image?: string;
   subtitle?: string;
 };
+
+/** `/gallery/foo.jpg` → `foo` */
+export function sourceIdFromImage(imagePath: string): string {
+  const base = imagePath.split('/').pop() ?? imagePath;
+  return base.replace(/\.(jpe?g|png|webp)$/i, '');
+}
 
 const BASE_TITLES = [
   'Renoir', 'Vermeer', 'Rembrandt', 'Sargent',
@@ -35,30 +44,39 @@ const BASE_FILLER = [
 
 const PALETTE_LABELS = ['amber', 'silver', 'forest', 'wine', 'ivory', 'slate', 'opal', 'rust'];
 
-export function buildAGItems(realItems: AGArtwork[]): AGArtwork[] {
+export function buildAGItems(
+  realItems: Pick<AGArtwork, 'id' | 'title' | 'artist' | 'year' | 'palette' | 'image'>[],
+): AGArtwork[] {
   const items: AGArtwork[] = [];
   const real = realItems ?? [];
   for (let i = 0; i < 50; i++) {
     const base = BASE_TITLES[i % BASE_TITLES.length];
     const img = BASE_FILLER[i % BASE_FILLER.length];
+    const image = i < real.length ? (real[i].image ?? img) : img;
+    const sourceId =
+      i < real.length
+        ? (real[i].id ?? sourceIdFromImage(image))
+        : sourceIdFromImage(image);
     if (i < real.length) {
       const r = real[i];
       items.push({
         id: r.id ?? String(i + 1),
+        sourceId,
         title: r.title ?? (base + ' ' + (i + 1)),
         artist: r.artist ?? 'Curated',
         year: r.year ?? 2024,
         palette: r.palette ?? PALETTE_LABELS[i % PALETTE_LABELS.length],
-        image: r.image ?? img,
+        image,
       });
     } else {
       items.push({
         id: 'fig-' + (i + 1),
+        sourceId,
         title: base + ' ' + (i + 1),
         artist: 'Curated',
         year: 2024,
         palette: PALETTE_LABELS[i % PALETTE_LABELS.length],
-        image: img,
+        image,
       });
     }
   }

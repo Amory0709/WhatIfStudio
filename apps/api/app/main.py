@@ -28,8 +28,19 @@ log = logging.getLogger("whatif")
 logging.basicConfig(level=logging.INFO)
 
 # Paths — all env-configurable so the image works in Docker AND on a dev box.
-# Defaults match the Dockerfile layout (see Dockerfile).
-GALLERY_DIR = Path(os.environ.get("GALLERY_DIR", "/app/web_out/gallery")).resolve()
+# Defaults match the Dockerfile layout (see Dockerfile), with a monorepo
+# fallback for local dev when GALLERY_DIR is unset (common on Windows).
+def _default_gallery_dir() -> Path:
+    docker = Path("/app/web_out/gallery")
+    if docker.is_dir():
+        return docker
+    local = Path(__file__).resolve().parents[2] / "web" / "public" / "gallery"
+    if local.is_dir():
+        return local
+    return docker
+
+
+GALLERY_DIR = Path(os.environ.get("GALLERY_DIR", str(_default_gallery_dir()))).resolve()
 WEB_OUT_DIR = Path(os.environ.get("WEB_OUT_DIR", "/app/web_out")).resolve()
 
 app = FastAPI(title="WhatIf Studio API", version="0.1.0")

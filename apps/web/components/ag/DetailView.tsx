@@ -70,7 +70,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
     setElapsed(0);
     try {
       const fd = new FormData();
-      fd.append('source_id', target.id);
+      fd.append('source_id', target.sourceId);
       fd.append('face', f);
       // Same-origin in production (FastAPI serves both API + static on :7860).
       // Override with NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 when running
@@ -83,7 +83,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       }
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
-      sessionStorage.setItem('print:' + target.id, url);
+      sessionStorage.setItem('print:' + target.sourceId, url);
       setFinishedIn(Math.round((Date.now() - t0) / 1000));
       onComplete(url);
     } catch (e: any) {

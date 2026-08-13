@@ -32,7 +32,7 @@ ENV PYTHONUNBUFFERED=1 \
     MAX_UPLOAD_MB=10
 
 # System libs for: opencv-python-headless (libgl1/libglib), insightface
-# (libsm/libxext/libxrender), cairosvg (libcairo).
+# (libsm/libxext/libxrender), cairosvg (libcairo), watermark text (fonts-dejavu).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxext6 \
         libxrender1 \
         libcairo2 \
+        fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
