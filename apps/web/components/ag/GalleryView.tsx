@@ -108,10 +108,10 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
               return (
                 <motion.div
                   key={img.id}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[45vw] md:w-[280px] aspect-[2/3] preserve-3d cursor-pointer"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] md:w-[420px] aspect-[3/2] preserve-3d cursor-pointer"
                   animate={{
                     x,
-                    y: isCenter ? (isMobile ? -550 : -750) : 0,
+                    y: isCenter ? (isMobile ? -380 : -560) : 0,
                     z,
                     rotateY: angle,
                     scale: isCenter ? 2 : 0.9,

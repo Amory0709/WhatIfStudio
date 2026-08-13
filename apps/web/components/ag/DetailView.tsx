@@ -145,10 +145,10 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
         ← Back
       </button>
 
-      <div className="w-full md:w-1/2 max-w-sm">
+      <div className="w-full md:w-1/2 max-w-md">
         <motion.div
           layoutId={'img-' + target.id}
-          className="aspect-[2/3] w-full bg-muted overflow-hidden shadow-2xl relative border border-border/40"
+          className="aspect-[3/2] w-full bg-muted overflow-hidden shadow-2xl relative border border-border/40"
         >
           {target.image ? (
             <img src={target.image} alt={target.title} className="w-full h-full object-cover" />

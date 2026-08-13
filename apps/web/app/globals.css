@@ -109,10 +109,11 @@
     page-break-inside: avoid !important;
   }
 
-  /* Hint the page size as 4R. iOS / Android / desktop print dialogs will
-  // override this if the chosen printer can't honour the custom size. */
+  /* Hint the page size as 4R LANDSCAPE (6×4 in = 152×102 mm, 3:2).
+     iOS / Android / desktop print dialogs will override this if the
+     chosen printer can't honour the custom size. */
   @page {
     margin: 0;
-    size: 102mm 152mm;
+    size: 152mm 102mm;
   }
 }

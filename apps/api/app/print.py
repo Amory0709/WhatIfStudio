@@ -12,7 +12,8 @@ Two endpoints:
 
 Configuration (all optional — endpoint returns 503 if BOOTH_PRINTER_NAME is unset):
   BOOTH_PRINTER_NAME   CUPS queue name (run `lpstat -p` to list).
-  BOOTH_MEDIA          CUPS media size. Default "Custom.102x152mm" (4R = 4×6 in).
+  BOOTH_MEDIA          CUPS media size. Default "Custom.152x102mm"
+                      (4R LANDSCAPE = 6×4 in, 3:2).
   BOOTH_COPIES         Default 1.
   BOOTH_RESIZE_DPI     Default 300. Image is upscaled when smaller than this.
   BOOTH_PRINT_TITLE    Job title shown on the printer LCD. Default "WhatIf Portrait".
@@ -44,8 +45,9 @@ log = logging.getLogger("whatif")
 
 router = APIRouter()
 
-# 4R photo: 4 in × 6 in = 102 × 152 mm. CUPS custom media name on macOS.
-DEFAULT_MEDIA = "Custom.102x152mm"
+# 4R photo, LANDSCAPE: 6 in × 4 in = 152 × 102 mm. 3:2 aspect.
+# CUPS custom media name on macOS.
+DEFAULT_MEDIA = "Custom.152x102mm"
 DEFAULT_DPI = 300  # dye-sub typical native resolution
 DEFAULT_COPIES = 1
 DEFAULT_TITLE = "WhatIf Portrait"
