@@ -1,0 +1,12 @@
+# Pinned to match apps/api/requirements.txt; HF Spaces Gradio SDK reads this.
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pillow==10.4.0
+numpy>=2.0,<3
+opencv-python-headless==4.10.0.84
+onnxruntime==1.23.0
+insightface==0.7.3
+opennsfw2==0.18.0
+cairosvg==2.7.1
+gradio==5.49.1
