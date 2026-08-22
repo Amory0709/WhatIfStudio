@@ -19,7 +19,11 @@ const nextConfig = {
   images: { unoptimized: true },
   reactStrictMode: true,
   async rewrites() {
-    return [];
+    // Local dev: Next :3000 proxies /api/* → FastAPI :8000 so the UI works
+    // without NEXT_PUBLIC_API_URL (avoids CORS + empty model list).
+    if (isProd) return [];
+    const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    return [{ source: '/api/:path*', destination: `${apiOrigin}/api/:path*` }];
   },
 };
 export default nextConfig;

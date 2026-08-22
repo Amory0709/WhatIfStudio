@@ -30,6 +30,7 @@ from PIL import Image
 
 from app.ethics import validate_face_upload
 from app.swap import perform_swap
+from app.swap_models import list_models, resolve_default_model
 from app.watermark import burn_watermark
 
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +45,7 @@ def list_gallery() -> list[str]:
     return sorted(str(p) for p in GALLERY_DIR.glob("*") if p.suffix.lower() in SUPPORTED)
 
 
-def swap(source_path: str | None, face_pil: Image.Image | None) -> Image.Image:
+def swap(source_path: str | None, face_pil: Image.Image | None, model: str) -> Image.Image:
     """Run face-swap. Returns a watermarked PIL Image."""
     if not source_path:
         raise gr.Error("Pick a portrait from the gallery first.")
@@ -62,9 +63,9 @@ def swap(source_path: str | None, face_pil: Image.Image | None) -> Image.Image:
     except Exception as e:
         raise gr.Error(f"Upload rejected: {e}")
 
-    log.info("swap: source=%s upload_size=%d", source_path, len(face_bytes))
+    log.info("swap: source=%s model=%s upload_size=%d", source_path, model, len(face_bytes))
     try:
-        out_bytes = perform_swap(source_path, face_bytes, job_id="gradio-swap")
+        out_bytes = perform_swap(source_path, face_bytes, job_id="gradio-swap", model=model)
     except ValueError as e:
         raise gr.Error(f"Swap failed: {e}")
     except Exception as e:
@@ -110,6 +111,12 @@ with gr.Blocks(title="WhatIf Studio", theme=gr.themes.Soft()) as demo:
                     type="pil",
                     height=320,
                 )
+                model_choices = [(m["label"], m["id"]) for m in list_models()]
+                swap_model = gr.Dropdown(
+                    label="Swap model",
+                    choices=model_choices,
+                    value=resolve_default_model(),
+                )
                 result = gr.Image(
                     label="Step 3 — Result",
                     type="pil",
@@ -125,7 +132,7 @@ with gr.Blocks(title="WhatIf Studio", theme=gr.themes.Soft()) as demo:
             return gallery_files[evt.index]
 
         gallery.select(_on_pick, None, source)
-        btn.click(swap, inputs=[source, face], outputs=result)
+        btn.click(swap, inputs=[source, face, swap_model], outputs=result)
 
     with gr.Tab("About"):
         gr.Markdown(

@@ -29,7 +29,11 @@ ENV PYTHONUNBUFFERED=1 \
     WHATIF_ENGINE_DIR=/app/engine \
     GALLERY_DIR=/app/web_out/gallery \
     WEB_OUT_DIR=/app/web_out \
-    MAX_UPLOAD_MB=10
+    MAX_UPLOAD_MB=10 \
+    WHATIF_SWAP_MODEL=inswapper_128 \
+    WHATIF_SWAP_SOURCE_WEIGHT=0.76 \
+    WHATIF_PRESERVE_EXPRESSION=0.82 \
+    WHATIF_SWAP_SHARPNESS=0.45
 
 # System libs for: opencv-python-headless (libgl1/libglib), insightface
 # (libsm/libxext/libxrender), cairosvg (libcairo), watermark text (fonts-dejavu).

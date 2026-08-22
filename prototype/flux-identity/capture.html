@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — 拍照换脸</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaf0;
+      --muted: #9399ad;
+      --accent: #7c6cf0;
+      --danger: #f07178;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.25rem; }
+    .lead { color: var(--muted); margin-bottom: 1rem; }
+    .badge { background: var(--accent); color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; }
+    nav { margin: 0.75rem 0 1.25rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+    nav a { color: var(--accent); font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .panel h2 { margin: 0 0 0.75rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    label { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; }
+    select, button { font: inherit; }
+    select { width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 0.75rem; }
+    video, img, canvas { width: 100%; border-radius: 8px; background: #000; display: block; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    button { border: none; border-radius: 8px; padding: 0.55rem 1rem; cursor: pointer; background: var(--accent); color: #fff; }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .status { margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted); min-height: 1.25rem; }
+    .status.error { color: var(--danger); }
+    .preview-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; }
+    .preview-row figcaption { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">PROTOTYPE</span>
+    <h1>拍照换脸</h1>
+    <p class="lead">选画廊肖像 → 打开摄像头 → 拍照 → 本地 InSwapper 合成（首次约 10–30 秒）。</p>
+    <nav>
+      <a href="demo.html">静态 demo</a>
+      <a href="eval.html">Eval 打分</a>
+    </nav>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>1 · 选肖像</h2>
+        <label for="portrait">Portrait</label>
+        <select id="portrait" aria-label="选择画廊肖像"></select>
+        <figure>
+          <img id="portrait-preview" alt="" />
+          <figcaption id="portrait-caption" style="color:var(--muted);font-size:0.8rem;margin-top:0.35rem"></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>2 · 拍照</h2>
+        <video id="video" playsinline autoplay muted aria-label="摄像头预览"></video>
+        <canvas id="canvas" class="hidden" width="640" height="480"></canvas>
+        <div class="actions">
+          <button type="button" id="start-cam">打开摄像头</button>
+          <button type="button" id="capture" disabled>拍照</button>
+          <button type="button" class="secondary" id="retake" disabled>重拍</button>
+        </div>
+        <div class="preview-row" id="capture-preview" class="hidden">
+          <figure>
+            <img id="selfie-preview" alt="你的照片" />
+            <figcaption>Upload</figcaption>
+          </figure>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </section>
+
+      <section class="panel">
+        <h2>3 · 合成</h2>
+        <div class="actions">
+          <button type="button" id="swap" disabled>开始换脸</button>
+        </div>
+        <figure style="margin-top:0.75rem">
+          <img id="result" alt="合成结果将显示在这里" hidden />
+          <figcaption id="result-caption" style="color:var(--muted);font-size:0.8rem;margin-top:0.35rem">Composite</figcaption>
+        </figure>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const portraitSelect = document.getElementById("portrait");
+    const portraitPreview = document.getElementById("portrait-preview");
+    const portraitCaption = document.getElementById("portrait-caption");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const startCamBtn = document.getElementById("start-cam");
+    const captureBtn = document.getElementById("capture");
+    const retakeBtn = document.getElementById("retake");
+    const swapBtn = document.getElementById("swap");
+    const selfiePreview = document.getElementById("selfie-preview");
+    const resultImg = document.getElementById("result");
+    const statusEl = document.getElementById("status");
+
+    let stream = null;
+    let selfieBlob = null;
+    let portraits = [];
+
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function portraitThumb(id) {
+      return `/gallery-proxy/${id}.jpg`;
+    }
+
+    async function loadPortraits() {
+      const res = await fetch("/api/portraits");
+      const data = await res.json();
+      portraits = data.portraits.filter((p) => p.available);
+      portraitSelect.innerHTML = portraits
+        .map((p) => `<option value="${p.id}">${p.label}</option>`)
+        .join("");
+      updatePortraitPreview();
+    }
+
+    function updatePortraitPreview() {
+      const id = portraitSelect.value;
+      const item = portraits.find((p) => p.id === id);
+      portraitPreview.src = `/gallery/${id}`;
+      portraitCaption.textContent = item ? item.label : id;
+    }
+
+    portraitSelect.addEventListener("change", updatePortraitPreview);
+
+    startCamBtn.addEventListener("click", async () => {
+      setStatus("正在打开摄像头…");
+      try {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        video.srcObject = stream;
+        captureBtn.disabled = false;
+        setStatus("摄像头已就绪 — 正对镜头后点「拍照」");
+      } catch (err) {
+        setStatus("无法打开摄像头：" + err.message, true);
+      }
+    });
+
+    captureBtn.addEventListener("click", () => {
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (!w || !h) {
+        setStatus("摄像头还没准备好", true);
+        return;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        selfieBlob = blob;
+        selfiePreview.src = URL.createObjectURL(blob);
+        document.getElementById("capture-preview").classList.remove("hidden");
+        swapBtn.disabled = false;
+        retakeBtn.disabled = false;
+        resultImg.hidden = true;
+        setStatus("已拍照 — 点「开始换脸」");
+      }, "image/jpeg", 0.92);
+    });
+
+    retakeBtn.addEventListener("click", () => {
+      selfieBlob = null;
+      swapBtn.disabled = true;
+      retakeBtn.disabled = true;
+      selfiePreview.removeAttribute("src");
+      resultImg.hidden = true;
+      setStatus("请重新拍照");
+    });
+
+    swapBtn.addEventListener("click", async () => {
+      if (!selfieBlob) return;
+      swapBtn.disabled = true;
+      setStatus("换脸中… 首次加载模型可能要 20–30 秒，别关页面");
+      const form = new FormData();
+      form.append("portrait_id", portraitSelect.value);
+      form.append("face", selfieBlob, "selfie.jpg");
+      try {
+        const res = await fetch("/swap", { method: "POST", body: form });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        const blob = await res.blob();
+        resultImg.src = URL.createObjectURL(blob);
+        resultImg.hidden = false;
+        setStatus("完成！可换肖像或重拍再试");
+      } catch (err) {
+        setStatus("失败：" + err.message, true);
+      } finally {
+        swapBtn.disabled = !selfieBlob;
+      }
+    });
+
+    loadPortraits().catch((err) => setStatus("加载肖像列表失败：" + err.message, true));
+  </script>
+</body>
+</html>

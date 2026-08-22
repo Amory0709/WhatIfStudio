@@ -3,7 +3,9 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Loader2, Upload, X } from 'lucide-react';
 import { AgreementModal } from './AgreementModal';
+import { UploadArchiveModal } from './UploadArchiveModal';
 import { GradientTile } from './GradientTile';
+import { getApiBase } from '@/lib/api-base';
 import type { AGArtwork } from './types';
 
 export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; onComplete: (printUrl: string) => void; onBack: () => void }) {
@@ -16,10 +18,13 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [finishedIn, setFinishedIn] = useState<number | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const API_BASE = getApiBase();
 
   const handleActionClick = (m: 'upload' | 'camera') => {
     setMethod(m);
@@ -29,7 +34,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const handleAgree = () => {
     setShowAgreement(false);
     if (method === 'upload') {
-      fileInputRef.current?.click();
+      setShowUploadModal(true);
     } else if (method === 'camera') {
       setShowCam(true);
     }
@@ -61,6 +66,13 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
     };
   }, [showCam]);
 
+  const completeWithBlob = (blob: Blob, t0: number) => {
+    const url = URL.createObjectURL(blob);
+    sessionStorage.setItem(`print:${target.sourceId}`, url);
+    setFinishedIn(Math.round((Date.now() - t0) / 1000));
+    onComplete(url);
+  };
+
   const runSwap = async (f: File) => {
     setBusy(true);
     setError(null);
@@ -72,20 +84,14 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       const fd = new FormData();
       fd.append('source_id', target.sourceId);
       fd.append('face', f);
-      // Same-origin in production (FastAPI serves both API + static on :7860).
-      // Override with NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 when running
-      // the Next.js dev server on :3000 with a separate FastAPI on :8000.
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
       const r = await fetch(`${API_BASE}/api/swap`, { method: 'POST', body: fd });
       if (!r.ok) {
         const d = (await r.json().catch(() => ({}))).detail;
         throw new Error(d || 'Swap failed');
       }
       const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      sessionStorage.setItem('print:' + target.sourceId, url);
-      setFinishedIn(Math.round((Date.now() - t0) / 1000));
-      onComplete(url);
+      setPreview(URL.createObjectURL(f));
+      completeWithBlob(blob, t0);
     } catch (e: any) {
       setError(e?.message || 'Something went wrong');
     } finally {
@@ -160,7 +166,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
 
       <div className="w-full md:w-1/2 flex flex-col justify-center max-w-md">
         <h2 className="text-4xl md:text-5xl mb-4 italic">Become the Subject</h2>
-        <p className="text-muted-foreground font-sans font-light mb-12">
+        <p className="text-muted-foreground font-sans font-light mb-8">
           Lend your visage to the masterworks. Select a method to provide your portrait for the exhibition.
         </p>
 
@@ -173,7 +179,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
             <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
             <div className="text-left">
               <div className="font-sans italic text-2xl text-foreground group-hover:text-primary group-hover:italic transition-all">Upload Archive</div>
-              <div className="font-sans text-xs text-muted-foreground mt-1">Select a file from your device</div>
+              <div className="font-sans text-xs text-muted-foreground mt-1">From this device or scan with your phone</div>
             </div>
           </button>
 
@@ -201,6 +207,29 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
           <p className="mt-4 rounded border border-rust/30 bg-rust/5 p-3 text-sm text-rust">{error}</p>
         )}
       </div>
+
+      <AnimatePresence>
+        {showUploadModal && (
+          <UploadArchiveModal
+            sourceId={target.sourceId}
+            onClose={() => setShowUploadModal(false)}
+            onLocalFile={() => {
+              setShowUploadModal(false);
+              fileInputRef.current?.click();
+            }}
+            onRemoteComplete={(blob) => {
+              setShowUploadModal(false);
+              setError(null);
+              setPreview(URL.createObjectURL(blob));
+              completeWithBlob(blob, Date.now());
+            }}
+            onRemoteError={(message) => {
+              setShowUploadModal(false);
+              setError(message);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showCam && (

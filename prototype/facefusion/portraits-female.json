@@ -1,0 +1,40 @@
+{
+  "description": "Female gallery portraits for FaceFusion prototype eval.",
+  "portraits": [
+    {
+      "id": "tier-2-people-lab-NEPEC-sugar-land-NAL-7R55891",
+      "label": "NEPEC Lab",
+      "tag": "lab-front"
+    },
+    {
+      "id": "tier-2-people-chx-manufacturing-facility-chemicals-midland-nal-1432-4inch",
+      "label": "CHX manufacturing",
+      "tag": "outdoor-smile"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-8280-4inch",
+      "label": "CHX production side light",
+      "tag": "outdoor-side"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-9096-4inch",
+      "label": "CHX field backlit",
+      "tag": "field-backlit"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-9678-4inch",
+      "label": "CHX hi-vis",
+      "tag": "field-hi-vis"
+    },
+    {
+      "id": "tier-2-project-electris-completions-chpc-ardmore-houston-nal-0205-4inch",
+      "label": "Electris valve",
+      "tag": "project-valve"
+    },
+    {
+      "id": "tier-2-project-electris-completions-chpc-ardmore-houston-nal-0434-4inch",
+      "label": "Electris pipe",
+      "tag": "project-pipe"
+    }
+  ]
+}

@@ -28,18 +28,18 @@ const BASE_TITLES = [
 const BASE_FILLER = [
   '/gallery/tier-2-people-armoring-manufacturing-facility-lawrence-nal-6613-4inch.jpg',
   '/gallery/tier-2-people-chx-manufacturing-facility-chemicals-midland-nal-1432-4inch.jpg',
+  '/gallery/tier-2-people-chx-production-facility-chemicals-midland-nal-9823-4inch.jpg',
+  '/gallery/tier-2-project-electris-completions-chpc-ardmore-houston-nal-0205-4inch.jpg',
+  '/gallery/tier-2-project-electris-completions-chpc-ardmore-houston-nal-0361-4inch.jpg',
+  '/gallery/tier-2-people-lead-extrusion-manufacturing-facility-lawrence-nal-6076-2-4inch.jpg',
+  '/gallery/tier-2-people-lab-NEPEC-sugar-land-NAL-7R55891.jpg',
+  '/gallery/tier-1-operating-base-coca-amr-4904.jpg',
   '/gallery/tier-2-people-chx-production-facility-chemicals-midland-nal-8280-4inch.jpg',
   '/gallery/tier-2-people-chx-production-facility-chemicals-midland-nal-9096-4inch.jpg',
   '/gallery/tier-2-people-chx-production-facility-chemicals-midland-nal-9678-4inch.jpg',
-  '/gallery/tier-2-people-chx-production-facility-chemicals-midland-nal-9823-4inch.jpg',
   '/gallery/tier-2-people-drilling-offshore-operations-el-nido-asa-3917-4inch.jpg',
   '/gallery/tier-2-people-land-operations-phitsanulok-asa-2753-4inch.jpg',
-  '/gallery/tier-2-people-lead-extrusion-manufacturing-facility-lawrence-nal-6076-2-4inch.jpg',
-  '/gallery/tier-2-project-electris-completions-chpc-ardmore-houston-nal-0205-4inch.jpg',
-  '/gallery/tier-2-project-electris-completions-chpc-ardmore-houston-nal-0361-4inch.jpg',
   '/gallery/tier-2-project-electris-completions-chpc-ardmore-houston-nal-0434-4inch.jpg',
-  '/gallery/family-day-19-4inch.jpg',
-  '/gallery/family-day-9-4inch.jpg',
 ];
 
 const PALETTE_LABELS = ['amber', 'silver', 'forest', 'wine', 'ivory', 'slate', 'opal', 'rust'];
@@ -64,7 +64,7 @@ export function buildAGItems(
         sourceId,
         title: r.title ?? (base + ' ' + (i + 1)),
         artist: r.artist ?? 'Curated',
-        year: r.year ?? 2024,
+        year: r.year ?? 2026,
         palette: r.palette ?? PALETTE_LABELS[i % PALETTE_LABELS.length],
         image,
       });
@@ -74,7 +74,7 @@ export function buildAGItems(
         sourceId,
         title: base + ' ' + (i + 1),
         artist: 'Curated',
-        year: 2024,
+        year: 2026,
         palette: PALETTE_LABELS[i % PALETTE_LABELS.length],
         image,
       });

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — FaceFusion eval</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaf0;
+      --muted: #9399ad;
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.35rem; margin: 0 0 0.25rem; }
+    .lead { color: var(--muted); margin-bottom: 1.25rem; max-width: 65ch; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
+    label.file { display: inline-block; background: var(--accent); color: #fff; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; }
+    label.file input { display: none; }
+    .row { border-top: 1px solid var(--border); padding: 1.25rem 0; }
+    .row:first-child { border-top: none; }
+    .row h2 { margin: 0 0 0.75rem; font-size: 1rem; }
+    .tag { font-size: 0.75rem; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    figure { margin: 0; }
+    figcaption { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+    img { width: 100%; border-radius: 8px; border: 1px solid var(--border); background: #000; }
+    .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+    .axis label { font-size: 0.85rem; display: block; margin-bottom: 0.25rem; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>FaceFusion prototype eval</h1>
+    <p class="lead"><strong>PROTOTYPE.</strong> 每张三列：<strong>Booth</strong>（自然）· <strong>Hybrid</strong>（FF mask + booth 后处理）· <strong>FF native</strong>（最像你）。Identity / Naturalness 各 1–5。</p>
+    <div class="panel">
+      <label class="file">加载 manifest.json<input type="file" id="manifestFile" accept=".json" /></label>
+      <span id="status" style="margin-left:0.75rem;color:var(--muted)"></span>
+    </div>
+    <div id="root"></div>
+  </main>
+  <script>
+    const scores = {};
+    const axes = [
+      { key: "identity", label: "Identity（像你）" },
+      { key: "naturalness", label: "Naturalness（自然）" },
+    ];
+
+    function scoreKey(pid, method, axis) {
+      return `${pid}::${method}::${axis}`;
+    }
+
+    function render(manifest) {
+      const root = document.getElementById("root");
+      root.innerHTML = "";
+      const methods = manifest.methods || {};
+      for (const v of manifest.variants || []) {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `<h2>${v.label || v.portrait_id} <span class="tag">${v.portrait_tag || ""}</span></h2>`;
+        const grid = document.createElement("div");
+        grid.className = "grid";
+        for (const [method, rel] of Object.entries(v.outputs || {})) {
+          const fig = document.createElement("figure");
+          const label = (methods[method] && methods[method].label) || method;
+          fig.innerHTML = `<img src="${rel}" alt="${label}" loading="lazy" /><figcaption>${label}</figcaption>`;
+          grid.appendChild(fig);
+        }
+        row.appendChild(grid);
+        const ax = document.createElement("div");
+        ax.className = "axes";
+        for (const method of Object.keys(v.outputs || {})) {
+          for (const a of axes) {
+            const wrap = document.createElement("div");
+            wrap.className = "axis";
+            const id = scoreKey(v.portrait_id, method, a.key);
+            const val = scores[id] ?? 3;
+            wrap.innerHTML = `<label>${(methods[method]?.label || method).slice(0, 24)} — ${a.label}: <strong id="v-${id}">${val}</strong></label>`;
+            const range = document.createElement("input");
+            range.type = "range";
+            range.min = 1;
+            range.max = 5;
+            range.step = 1;
+            range.value = val;
+            range.addEventListener("input", () => {
+              scores[id] = Number(range.value);
+              document.getElementById(`v-${id}`).textContent = range.value;
+            });
+            wrap.appendChild(range);
+            ax.appendChild(wrap);
+          }
+        }
+        row.appendChild(ax);
+        root.appendChild(row);
+      }
+    }
+
+    async function loadDefault() {
+      try {
+        const r = await fetch("manifest.json");
+        if (!r.ok) return;
+        render(await r.json());
+        document.getElementById("status").textContent = "已加载 manifest.json";
+      } catch (_) {}
+    }
+
+    document.getElementById("manifestFile").addEventListener("change", async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      render(JSON.parse(await f.text()));
+      document.getElementById("status").textContent = f.name;
+    });
+
+    loadDefault();
+  </script>
+</body>
+</html>

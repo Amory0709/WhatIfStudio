@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — Flux identity eval</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaf0;
+      --muted: #9399ad;
+      --accent: #7c6cf0;
+      --pass: #3ecf8e;
+      --fail: #f07178;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 0.35rem; }
+    .lead { color: var(--muted); margin-bottom: 1.5rem; max-width: 60ch; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .panel h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 0.75rem; }
+    button, label.file {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.55rem 1rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    label.file input { display: none; }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .state-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
+    .stat { background: var(--bg); border-radius: 8px; padding: 0.65rem 0.75rem; }
+    .stat kbd { display: block; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; }
+    .stat strong { font-size: 1.25rem; }
+    .variant {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .variant:first-child { border-top: none; padding-top: 0; }
+    .variant-head { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: baseline; margin-bottom: 0.75rem; }
+    .variant-head h3 { margin: 0; font-size: 1rem; }
+    .tag { font-size: 0.75rem; color: var(--muted); background: var(--bg); padding: 0.15rem 0.5rem; border-radius: 999px; }
+    .thumb { max-width: 280px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: #000; }
+    .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+    .axis label { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; }
+    .axis input[type=range] { width: 100%; accent-color: var(--accent); }
+    .score-val { font-weight: 600; color: var(--accent); }
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .summary-table th, .summary-table td { text-align: left; padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--border); }
+    .pass { color: var(--pass); }
+    .fail { color: var(--fail); }
+    .hidden { display: none; }
+    .walkthrough { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Flux identity eval</h1>
+    <p class="lead">
+      <strong>PROTOTYPE.</strong> 画廊 <strong>7 张女性肖像</strong> baseline 打分。
+      Identity / Scene fidelity / Naturalness 各 1–5。
+      <a href="capture.html" style="color:#7c6cf0">拍照试换脸</a>
+    </p>
+
+    <section class="panel" id="load-panel">
+      <h2>Start</h2>
+      <label class="file">Load manifest.json<input type="file" id="manifest-input" accept=".json,application/json" /></label>
+    </section>
+
+    <section class="panel hidden" id="summary-panel">
+      <h2>Eval state</h2>
+      <div class="state-grid" id="state-grid"></div>
+      <div class="walkthrough">
+        <button type="button" class="secondary" data-scenario="happy">Walkthrough: score one portrait</button>
+        <button type="button" class="secondary" data-scenario="compare">Walkthrough: compare methods</button>
+        <button type="button" id="export-btn">Export scores.json</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="methods-panel">
+      <h2>Method averages</h2>
+      <table class="summary-table" id="method-table"></table>
+    </section>
+
+    <section class="panel hidden" id="variants-panel">
+      <h2>Variants</h2>
+      <div id="variants-root"></div>
+    </section>
+  </main>
+
+  <script>
+    /** Pure eval logic — liftable into production spec later. */
+    const AXES = [
+      { key: "identity", label: "Identity", hint: "Looks like the visitor upload" },
+      { key: "scene_fidelity", label: "Scene fidelity", hint: "Portrait outfit & background kept" },
+      { key: "naturalness", label: "Naturalness", hint: "Face lighting/texture fits the scene" },
+    ];
+
+    function createEvalState(manifest) {
+      const scores = {};
+      for (const v of manifest.variants) {
+        scores[v.id] = { identity: 0, scene_fidelity: 0, naturalness: 0 };
+      }
+      return { manifest, scores, scenario: null, scenarioStep: 0 };
+    }
+
+    function setScore(state, variantId, axis, value) {
+      if (!state.scores[variantId]) return state;
+      return {
+        ...state,
+        scores: {
+          ...state.scores,
+          [variantId]: { ...state.scores[variantId], [axis]: value },
+        },
+      };
+    }
+
+    function axisAverage(state, variantId) {
+      const s = state.scores[variantId];
+      if (!s) return 0;
+      const vals = AXES.map((a) => s[a.key]).filter((n) => n > 0);
+      if (!vals.length) return 0;
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+
+    function methodStats(state) {
+      const byMethod = {};
+      for (const v of state.manifest.variants) {
+        byMethod[v.method] = byMethod[v.method] || { label: v.method_label, ids: [] };
+        byMethod[v.method].ids.push(v.id);
+      }
+      const out = {};
+      for (const [method, info] of Object.entries(byMethod)) {
+        const axisSums = Object.fromEntries(AXES.map((a) => [a.key, []]));
+        for (const id of info.ids) {
+          for (const a of AXES) {
+            const val = state.scores[id]?.[a.key] || 0;
+            if (val > 0) axisSums[a.key].push(val);
+          }
+        }
+        const axes = {};
+        for (const a of AXES) {
+          const arr = axisSums[a.key];
+          axes[a.key] = arr.length ? arr.reduce((x, y) => x + y, 0) / arr.length : 0;
+        }
+        const scored = info.ids.filter((id) => axisAverage(state, id) > 0).length;
+        out[method] = { label: info.label, axes, scored, total: info.ids.length };
+      }
+      return out;
+    }
+
+    function passesGate(state, method) {
+      const gate = state.manifest.eval_gate || { min_axis: 3, min_average: 4 };
+      const stats = methodStats(state)[method];
+      if (!stats || stats.scored < stats.total) return { pass: false, reason: "Incomplete scores" };
+      const avgs = AXES.map((a) => stats.axes[a.key]);
+      if (avgs.some((v) => v > 0 && v < gate.min_axis)) return { pass: false, reason: `Axis below ${gate.min_axis}` };
+      const mean = avgs.reduce((a, b) => a + b, 0) / avgs.length;
+      if (mean < gate.min_average) return { pass: false, reason: `Average below ${gate.min_average}` };
+      return { pass: true, reason: "Pass" };
+    }
+
+    function beatsBaseline(state, method) {
+      if (method === "baseline_inswapper") return { pass: true, reason: "Baseline" };
+      const stats = methodStats(state);
+      const base = stats.baseline_inswapper;
+      const cur = stats[method];
+      if (!base || !cur) return { pass: false, reason: "Missing baseline" };
+      for (const a of AXES) {
+        if (cur.axes[a.key] <= base.axes[a.key]) {
+          return { pass: false, reason: `Not above baseline on ${a.label}` };
+        }
+      }
+      return { pass: true, reason: "Beats baseline" };
+    }
+
+    let state = null;
+
+    function render() {
+      if (!state) return;
+      document.getElementById("load-panel").classList.add("hidden");
+      document.getElementById("summary-panel").classList.remove("hidden");
+      document.getElementById("methods-panel").classList.remove("hidden");
+      document.getElementById("variants-panel").classList.remove("hidden");
+
+      const total = state.manifest.variants.length;
+      const done = state.manifest.variants.filter((v) => axisAverage(state, v.id) > 0).length;
+      document.getElementById("state-grid").innerHTML = `
+        <div class="stat"><kbd>Scored</kbd><strong>${done} / ${total}</strong></div>
+        <div class="stat"><kbd>Upload</kbd><strong style="font-size:0.85rem">${state.manifest.upload || "—"}</strong></div>
+        <div class="stat"><kbd>Gate</kbd><strong>avg ≥ ${state.manifest.eval_gate?.min_average ?? 4}</strong></div>
+      `;
+
+      const stats = methodStats(state);
+      const rows = Object.entries(stats).map(([method, s]) => {
+        const gate = passesGate(state, method);
+        const vs = beatsBaseline(state, method);
+        const axisCells = AXES.map((a) => s.axes[a.key] ? s.axes[a.key].toFixed(2) : "—").join("</td><td>");
+        return `<tr>
+          <td>${s.label}</td>
+          <td>${s.scored}/${s.total}</td>
+          <td>${axisCells}</td>
+          <td class="${gate.pass ? "pass" : "fail"}">${gate.reason}</td>
+          <td class="${vs.pass ? "pass" : "fail"}">${vs.reason}</td>
+        </tr>`;
+      }).join("");
+      document.getElementById("method-table").innerHTML = `
+        <thead><tr><th>Method</th><th>Done</th>${AXES.map(a => `<th>${a.label}</th>`).join("")}<th>Gate</th><th>vs baseline</th></tr></thead>
+        <tbody>${rows}</tbody>`;
+
+      const root = document.getElementById("variants-root");
+      root.innerHTML = state.manifest.variants.map((v) => {
+        const scores = state.scores[v.id];
+        const sliders = AXES.map((a) => `
+          <div class="axis">
+            <label>${a.label} <span class="score-val" data-val="${v.id}-${a.key}">${scores[a.key] || "—"}</span></label>
+            <input type="range" min="1" max="5" step="1" value="${scores[a.key] || 3}"
+              data-variant="${v.id}" data-axis="${a.key}" aria-label="${a.label} for ${v.method_label}" />
+            <small style="color:var(--muted)">${a.hint}</small>
+          </div>`).join("");
+        return `<article class="variant" data-id="${v.id}">
+          <div class="variant-head">
+            <h3>${v.method_label}</h3>
+            <span class="tag">${v.portrait_tag || v.portrait_id}</span>
+            ${v.strength != null ? `<span class="tag">strength ${v.strength}</span>` : ""}
+          </div>
+          <img class="thumb" src="${v.image}" alt="${v.method_label} composite" onerror="this.alt='Image not found — run from repo root or use file paths in manifest'" />
+          <div class="axes">${sliders}</div>
+        </article>`;
+      }).join("");
+
+      root.querySelectorAll("input[type=range]").forEach((input) => {
+        input.oninput = () => {
+          const id = input.dataset.variant;
+          const axis = input.dataset.axis;
+          state = setScore(state, id, axis, Number(input.value));
+          root.querySelector(`[data-val="${id}-${axis}"]`).textContent = input.value;
+          render();
+        };
+      });
+    }
+
+    document.getElementById("manifest-input").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const manifest = JSON.parse(await file.text());
+      state = createEvalState(manifest);
+      render();
+    });
+
+    fetch("manifest.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((manifest) => {
+        if (!manifest || state) return;
+        state = createEvalState(manifest);
+        render();
+      })
+      .catch(() => {});
+
+    document.getElementById("export-btn").addEventListener("click", () => {
+      if (!state) return;
+      const payload = {
+        exported_at: new Date().toISOString(),
+        upload: state.manifest.upload,
+        scores: state.scores,
+        method_stats: methodStats(state),
+        verdict: Object.fromEntries(
+          Object.keys(methodStats(state))
+            .filter((m) => m !== "baseline_inswapper")
+            .map((m) => [m, { gate: passesGate(state, m), baseline: beatsBaseline(state, m) }])
+        ),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "scores.json";
+      a.click();
+    });
+
+    document.querySelectorAll("[data-scenario]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (!state) return;
+        const first = state.manifest.variants[0];
+        if (first) {
+          document.querySelector(`[data-id="${first.id}"]`)?.scrollIntoView({ behavior: "smooth" });
+        }
+        alert(btn.dataset.scenario === "happy"
+          ? "Score all three sliders for the first variant, then scroll through each portrait."
+          : "Compare methods on the same portrait tag — Identity vs Scene fidelity trade-offs should pop.");
+      });
+    });
+  </script>
+</body>
+</html>

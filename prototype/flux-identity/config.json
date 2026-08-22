@@ -1,0 +1,78 @@
+{
+  "upload_hint": "Pass --upload path/to/your/face.jpg to run.py baseline",
+  "portrait_set": "portraits-female.json",
+  "portraits": [
+    {
+      "id": "tier-2-people-lab-NEPEC-sugar-land-NAL-7R55891",
+      "tag": "lab-front",
+      "note": "NEPEC lab Lynn, curly hair"
+    },
+    {
+      "id": "tier-2-people-chx-manufacturing-facility-chemicals-midland-nal-1432-4inch",
+      "tag": "outdoor-smile",
+      "note": "CHX outdoor, female, hard hat"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-8280-4inch",
+      "tag": "outdoor-side",
+      "note": "CHX production, female, side light"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-9096-4inch",
+      "tag": "field-backlit",
+      "note": "CHX field, female, backlit"
+    },
+    {
+      "id": "tier-2-people-chx-production-facility-chemicals-midland-nal-9678-4inch",
+      "tag": "field-hi-vis",
+      "note": "CHX field, female, yellow parka"
+    },
+    {
+      "id": "tier-2-project-electris-completions-chpc-ardmore-houston-nal-0205-4inch",
+      "tag": "project-valve",
+      "note": "Electris project, female, valve"
+    },
+    {
+      "id": "tier-2-project-electris-completions-chpc-ardmore-houston-nal-0434-4inch",
+      "tag": "project-pipe",
+      "note": "Electris project, female, pipe lean"
+    }
+  ],
+  "inpaint_strengths": [0.45, 0.65, 0.85],
+  "methods": {
+    "baseline_inswapper": {
+      "label": "InSwapper 128 (current)",
+      "kind": "baseline",
+      "auto": true
+    },
+    "pulid_inpaint": {
+      "label": "PuLID · face inpaint",
+      "kind": "flux_inpaint",
+      "auto": false,
+      "comfy_workflow": "workflows/pulid_inpaint_api.json"
+    },
+    "instantid_inpaint": {
+      "label": "InstantID · face inpaint",
+      "kind": "flux_inpaint",
+      "auto": false,
+      "comfy_workflow": "workflows/instantid_inpaint_api.json"
+    },
+    "pulid_img2img": {
+      "label": "PuLID · low denoise img2img",
+      "kind": "flux_img2img",
+      "auto": false,
+      "optional": true
+    },
+    "instantid_img2img": {
+      "label": "InstantID · low denoise img2img",
+      "kind": "flux_img2img",
+      "auto": false,
+      "optional": true
+    }
+  },
+  "eval_gate": {
+    "min_axis": 3,
+    "min_average": 4,
+    "must_beat_baseline": true
+  }
+}

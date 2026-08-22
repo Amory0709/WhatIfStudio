@@ -1,0 +1,34 @@
+{
+  "upload_default": ".scratch/diagnose/my-upload.jpg",
+  "portraits_file": "portraits-female.json",
+  "methods": {
+    "booth": {
+      "label": "Booth (current API)",
+      "kind": "booth"
+    },
+    "ff_native": {
+      "label": "FF masks in-repo (box + XSeg)",
+      "kind": "native"
+    },
+    "hybrid": {
+      "label": "Hybrid — FF mask swap + booth paste",
+      "kind": "hybrid"
+    },
+    "ff_cli_inswapper": {
+      "label": "FaceFusion CLI · inswapper_128",
+      "kind": "cli",
+      "processors": ["face_swapper"],
+      "face_swapper_model": "inswapper_128",
+      "face_mask_types": ["box", "occlusion"],
+      "face_mask_blur": 0.3
+    },
+    "ff_cli_hyperswap": {
+      "label": "FaceFusion CLI · hyperswap_1c_256",
+      "kind": "cli",
+      "processors": ["face_swapper"],
+      "face_swapper_model": "hyperswap_1c_256",
+      "face_mask_types": ["box", "occlusion"],
+      "face_mask_blur": 0.3
+    }
+  }
+}

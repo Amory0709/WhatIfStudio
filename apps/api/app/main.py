@@ -19,9 +19,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
+from .booth_pipeline import booth_settings
+from .diagnose_selfie import router as diagnose_selfie_router
 from .ethics import validate_face_upload
 from .print import router as print_router
 from .swap import perform_swap
+from .upload_session import router as upload_session_router
+from .swap_models import list_models, resolve_default_model, resolve_model_for_request
 from .watermark import burn_watermark
 
 log = logging.getLogger("whatif")
@@ -63,8 +67,32 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/api/config")
+async def public_config():
+    from .upload_session import public_base_url
+
+    return {"public_base_url": public_base_url()}
+
+
+@app.get("/api/swap/models")
+async def swap_models():
+    """List swap models and booth pipeline tuning (prototype defaults)."""
+    booth = booth_settings()
+    return {
+        **booth,
+        "default": resolve_default_model(),
+        "face_shape_model": "hififace_256",
+        "models": list_models(),
+    }
+
+
 @app.post("/api/swap")
-async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
+async def swap(
+    source_id: str = Form(...),
+    face: UploadFile = File(...),
+    model: str = Form(default=""),
+    transfer_face_shape: str = Form(default=""),
+):
     """Composite the user's face onto a fictional gallery portrait."""
     face_bytes = await face.read()
     validate_face_upload(face_bytes, face.content_type or "")
@@ -79,10 +107,29 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
     if source_path is None:
         raise HTTPException(404, f"Unknown portrait id: {source_id}")
 
-    log.info("swap: source_id=%s source_path=%s upload_size=%d", source_id, source_path, len(face_bytes))
+    shape = transfer_face_shape.strip().lower() in ("1", "true", "yes")
+    model_id = resolve_model_for_request(model or None, transfer_face_shape=shape)
+    booth = booth_settings()
+    log.info(
+        "swap: source_id=%s model=%s face_shape=%s pipeline=%s source_weight=%s preserve_expr=%s source_path=%s upload_size=%d",
+        source_id,
+        model_id,
+        shape,
+        booth["pipeline"],
+        booth["source_weight"],
+        booth["preserve_expression"],
+        source_path,
+        len(face_bytes),
+    )
 
     try:
-        swapped = perform_swap(str(source_path), face_bytes, job_id="swap")
+        swapped = perform_swap(
+            str(source_path),
+            face_bytes,
+            job_id="swap",
+            model=model or None,
+            transfer_face_shape=shape,
+        )
     except ValueError as e:
         log.warning("swap failed: %s", e)
         raise HTTPException(400, str(e))
@@ -99,7 +146,15 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
     return Response(
         content=watermarked,
         media_type="image/png",
-        headers={"X-WhatIf-Job": "swap", "X-WhatIf-Watermarked": "1"},
+        headers={
+            "X-WhatIf-Job": "swap",
+            "X-WhatIf-Watermarked": "1",
+            "X-WhatIf-Model": model_id,
+            "X-WhatIf-Mode": "facefusion",
+            "X-WhatIf-Pipeline": str(booth["pipeline"]),
+            "X-WhatIf-Source-Weight": str(booth["source_weight"]),
+            "X-WhatIf-Preserve-Expression": str(booth["preserve_expression"]),
+        },
     )
 
 
@@ -108,6 +163,8 @@ async def swap(source_id: str = Form(...), face: UploadFile = File(...)):
 # Mounted BEFORE the static fallback so /api/print/* is never 404'd.
 # ---------------------------------------------------------------------------
 app.include_router(print_router)
+app.include_router(upload_session_router)
+app.include_router(diagnose_selfie_router)
 
 
 # ---------------------------------------------------------------------------

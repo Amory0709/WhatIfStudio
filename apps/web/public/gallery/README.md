@@ -4,11 +4,12 @@ JPEG portraits loaded by the web front-end (`apps/web/lib/gallery.ts`) and the F
 
 ## Contents
 
-14 photos, in three groups:
+14 photos, in four groups:
 
 - **Tier 2 — People** (9): industrial operations — armoring, CHX manufacturing/production, offshore drilling, land operations, lead extrusion.
 - **Tier 2 — Project** (3): Electris Completions at the CHPC, Ardmore (Houston).
-- **Family Day** (2): `family-day-9-4inch.jpg`, `family-day-19-4inch.jpg`.
+- **Tier 1 — Operating base** (1): `tier-1-operating-base-coca-amr-4904.jpg`.
+- **Tier 2 — Lab** (1): `tier-2-people-lab-NEPEC-sugar-land-NAL-7R55891.jpg`.
 
 Per-file `title` and `palette` are defined in `data/gallery.json`.
 

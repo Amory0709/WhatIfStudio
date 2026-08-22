@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE demo — Family Day #19 (Lynn)</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0f1117; color: #e8eaf0; }
+    main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    p { color: #9399ad; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    figure { margin: 0; background: #1a1d27; border-radius: 12px; padding: 0.75rem; border: 1px solid #2d3348; }
+    img { width: 100%; border-radius: 8px; display: block; }
+    figcaption { margin-top: 0.5rem; font-size: 0.85rem; color: #9399ad; }
+    .badge { display: inline-block; background: #7c6cf0; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">PROTOTYPE</span>
+    <h1>Family Day #19 — Lynn（实验室）</h1>
+    <p>InSwapper baseline：测试脸换到画廊女性肖像上。衣服/场景保留原图。</p>
+    <div class="row">
+      <figure>
+        <img src="fixtures/family-day-19-portrait.jpg" alt="原图 Portrait" />
+        <figcaption>Portrait 原图</figcaption>
+      </figure>
+      <figure>
+        <img src="fixtures/prototype-upload.jpg" alt="Upload 测试脸" />
+        <figcaption>Upload（InsightFace 测试脸，可换你的自拍）</figcaption>
+      </figure>
+      <figure>
+        <img src="outputs/demo-family-day-19.png" alt="Composite 合成结果" />
+        <figcaption>Composite 合成结果</figcaption>
+      </figure>
+    </div>
+    <p style="margin-top:1.5rem">
+      <a href="capture.html" style="color:#7c6cf0">拍照试换脸 → capture.html</a> ·
+      <a href="eval.html" style="color:#7c6cf0">7 张女性 baseline → eval.html</a>
+    </p>
+  </main>
+</body>
+</html>

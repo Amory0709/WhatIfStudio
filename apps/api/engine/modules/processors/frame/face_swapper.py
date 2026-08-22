@@ -24,6 +24,7 @@ from collections import deque
 import time
 
 FACE_SWAPPER = None
+LOADED_SWAP_MODEL: Optional[str] = None
 THREAD_LOCK = threading.Lock()
 NAME = "DLC.FACE-SWAPPER"
 
@@ -210,39 +211,70 @@ def pre_check() -> bool:
     return True
 
 
-def pre_start() -> bool:
-    # Check for either model variant
-    fp16_path = os.path.join(models_dir, "inswapper_128_fp16.onnx")
+def _active_swap_model() -> str:
+    return getattr(modules.globals, "swap_model", "inswapper_128") or "inswapper_128"
+
+
+def _resolve_inswapper_model_path() -> Optional[str]:
+    """Pick ONNX path for inswapper-family models (128 or reswapper 256)."""
+    swap_model = _active_swap_model()
+    if swap_model == "reswapper_256":
+        reswapper = os.path.join(models_dir, "reswapper_256.onnx")
+        if os.path.exists(reswapper):
+            return reswapper
+        update_status(
+            f"reswapper_256.onnx not found in {models_dir}. "
+            "Download from https://huggingface.co/somanchiu/reswapper",
+            NAME,
+        )
+        return None
+
     fp32_path = os.path.join(models_dir, "inswapper_128.onnx")
-    if not os.path.exists(fp16_path) and not os.path.exists(fp32_path):
-        update_status(f"Model not found in {models_dir}. Please download inswapper_128.onnx.", NAME)
+    fp16_path = os.path.join(models_dir, "inswapper_128_fp16.onnx")
+    use_fp16 = _HAS_TORCH_CUDA and os.path.exists(fp16_path)
+    if use_fp16:
+        return fp16_path
+    if os.path.exists(fp32_path):
+        return fp32_path
+    update_status(f"No inswapper model found in {models_dir}.", NAME)
+    return None
+
+
+def reset_face_swapper() -> None:
+    """Drop cached swapper session (call when swap_model changes)."""
+    global FACE_SWAPPER, LOADED_SWAP_MODEL
+    with THREAD_LOCK:
+        FACE_SWAPPER = None
+        LOADED_SWAP_MODEL = None
+
+
+def pre_start() -> bool:
+    swap_model = _active_swap_model()
+    if swap_model in ("hififace_256", "hyperswap_256"):
+        # ONNX models are loaded by app/onnx_swapper.py — nothing to warm here.
+        return True
+
+    model_path = _resolve_inswapper_model_path()
+    if model_path is None:
         return False
 
-    # Try to get the face swapper to ensure it loads correctly
     if get_face_swapper() is None:
-        # Error message already printed within get_face_swapper
         return False
 
     return True
 
 
 def get_face_swapper() -> Any:
-    global FACE_SWAPPER
+    global FACE_SWAPPER, LOADED_SWAP_MODEL
 
     with THREAD_LOCK:
+        swap_model = _active_swap_model()
+        if FACE_SWAPPER is not None and LOADED_SWAP_MODEL != swap_model:
+            FACE_SWAPPER = None
+
         if FACE_SWAPPER is None:
-            # Prefer FP16 on GPUs with Tensor Cores (Turing+) — half the
-            # memory bandwidth, faster inference.  Fall back to FP32 for
-            # older GPUs (e.g. GTX 16xx) where FP16 can produce NaN.
-            fp32_path = os.path.join(models_dir, "inswapper_128.onnx")
-            fp16_path = os.path.join(models_dir, "inswapper_128_fp16.onnx")
-            use_fp16 = _HAS_TORCH_CUDA and os.path.exists(fp16_path)
-            if use_fp16:
-                model_path = fp16_path
-            elif os.path.exists(fp32_path):
-                model_path = fp32_path
-            else:
-                update_status(f"No inswapper model found in {models_dir}.", NAME)
+            model_path = _resolve_inswapper_model_path()
+            if model_path is None:
                 return None
             # On Apple Silicon, rewrite Pad(reflect) → Slice+Concat so
             # CoreML can run the entire model in a single partition on
@@ -279,14 +311,15 @@ def get_face_swapper() -> Any:
                     model_path,
                     providers=providers_config,
                 )
+                LOADED_SWAP_MODEL = swap_model
                 # Set up CUDA graph session for faster inference
-                if _HAS_TORCH_CUDA and any(
+                if swap_model == "inswapper_128" and _HAS_TORCH_CUDA and any(
                     p == "CUDAExecutionProvider" or
                     (isinstance(p, tuple) and p[0] == "CUDAExecutionProvider")
                     for p in providers_config
                 ):
                     _init_cuda_graph_session(model_path, FACE_SWAPPER)
-                update_status("Face swapper model loaded successfully.", NAME)
+                update_status(f"Face swapper loaded: {swap_model} ({os.path.basename(model_path)})", NAME)
             except Exception as e:
                 update_status(f"Error loading face swapper model: {e}", NAME)
                 FACE_SWAPPER = None

@@ -93,30 +93,52 @@ step "5/8  docker build (4-6 min on Apple Silicon)"
 docker build -t whatif "$WHATIF_HOME"
 ok "image built: whatif"
 
+start_container() {
+  local public_base="${1:-}"
+  docker rm -f whatif 2>/dev/null || true
+  local -a env_args=(
+    -e "WEB_WORKERS=$WORKERS"
+  )
+  if [ -n "$public_base" ]; then
+    env_args+=(-e "PUBLIC_BASE_URL=$public_base")
+  fi
+  if [ -n "${BOOTH_PRINTER_NAME:-}" ]; then env_args+=(-e "BOOTH_PRINTER_NAME=$BOOTH_PRINTER_NAME"); fi
+  if [ -n "${BOOTH_MEDIA:-}" ]; then env_args+=(-e "BOOTH_MEDIA=$BOOTH_MEDIA"); fi
+  if [ -n "${BOOTH_COPIES:-}" ]; then env_args+=(-e "BOOTH_COPIES=$BOOTH_COPIES"); fi
+  if [ -n "${BOOTH_RESIZE_DPI:-}" ]; then env_args+=(-e "BOOTH_RESIZE_DPI=$BOOTH_RESIZE_DPI"); fi
+  if [ -n "${BOOTH_PRINT_TITLE:-}" ]; then env_args+=(-e "BOOTH_PRINT_TITLE=$BOOTH_PRINT_TITLE"); fi
+
+  docker run -d \
+    --name whatif \
+    --restart=unless-stopped \
+    -p 127.0.0.1:$CONTAINER_PORT:$CONTAINER_PORT \
+    -v "$WHATIF_HOME/apps/web/public/gallery:/gallery:ro" \
+    -v "$WHATIF_HOME/apps/api/engine:/engine:ro" \
+    "${env_args[@]}" \
+    whatif
+}
+
+wait_for_health() {
+  printf "  waiting for /health"
+  for i in $(seq 1 60); do
+    if curl -sf "http://127.0.0.1:$CONTAINER_PORT/health" >/dev/null 2>&1; then
+      printf " ready\n"
+      ok "container healthy"
+      return 0
+    fi
+    printf "."
+    sleep 1
+  done
+  printf "\n"
+  die "/health did not respond in 60s — check: docker logs whatif"
+}
+
 # ---------- 6. run container --------------------------------------------------
 step "6/8  starting container (workers=$WORKERS, auto-restart)"
-docker rm -f whatif 2>/dev/null || true
-docker run -d \
-  --name whatif \
-  --restart=unless-stopped \
-  -p 127.0.0.1:$CONTAINER_PORT:$CONTAINER_PORT \
-  -v "$WHATIF_HOME/apps/web/public/gallery:/gallery:ro" \
-  -v "$WHATIF_HOME/apps/api/engine:/engine:ro" \
-  -e WEB_WORKERS="$WORKERS" \
-  whatif
-
-# Wait for /health (InsightFace + ONNX cold start can take ~30s)
-printf "  waiting for /health"
-for i in $(seq 1 60); do
-  if curl -sf "http://127.0.0.1:$CONTAINER_PORT/health" >/dev/null 2>&1; then
-    printf " ready\n"
-    ok "container healthy"
-    break
-  fi
-  printf "."
-  sleep 1
-  [ $i -eq 60 ] && { printf "\n"; die "/health did not respond in 60s — check: docker logs whatif"; }
-done
+EXISTING_URL=""
+[ -f "$HOME/.whatif-url" ] && EXISTING_URL=$(cat "$HOME/.whatif-url" 2>/dev/null || true)
+start_container "$EXISTING_URL"
+wait_for_health
 
 # ---------- 7. cloudflare tunnel ----------------------------------------------
 step "7/8  starting Cloudflare quick tunnel (no account needed)"
@@ -152,6 +174,13 @@ done
 
 echo "$URL" > "$HOME/.whatif-url"
 ok "tunnel live → $URL"
+
+# Phone QR codes must use the public HTTPS origin, not localhost:7860.
+if [ "$URL" != "$EXISTING_URL" ]; then
+  step "7b/8  refreshing container with PUBLIC_BASE_URL=$URL"
+  start_container "$URL"
+  wait_for_health
+fi
 
 # ---------- 8. summary --------------------------------------------------------
 step "8/8  done"

@@ -55,6 +55,31 @@ URL: https://random-three-words.trycloudflare.com
 
 Send that URL to anyone in the world — they can use the app immediately.
 
+## Phone upload (QR code)
+
+Mac mini deploy already exposes a **public HTTPS URL** via Cloudflare tunnel — phones on LTE or any WiFi can reach it. No LAN IP or Tailscale needed.
+
+**Do this on demo day:**
+
+1. Read your public URL:
+   ```bash
+   cat ~/.whatif-url
+   # e.g. https://random-words.trycloudflare.com
+   ```
+2. Open **that URL** on the booth display (Safari full-screen). Do **not** use `http://127.0.0.1:7860` — QR would point at localhost and phones would 404.
+3. Pick a portrait → **Upload Archive** → scan the QR on your phone → upload a photo.
+
+The deploy script sets `PUBLIC_BASE_URL` inside the container to match the tunnel URL, so the QR always uses HTTPS even if you briefly opened localhost during testing.
+
+After a reboot, `trycloudflare.com` URLs change — run `cat ~/.whatif-url` again and reopen that link on the booth before generating new QR codes. For a permanent domain, see §"Stable URL with a custom domain" below.
+
+To pick up the mobile-upload feature after pulling new code:
+
+```bash
+cd ~/whatifstudio && git pull
+./infra/macmini/deploy-macmini.sh
+```
+
 ## Day-of demo checklist
 
 Do these in the morning of your demo:
@@ -249,6 +274,7 @@ they don't share.
 | Container starts but `/health` times out | Engine dir empty (models not on disk) | Verify `ls ~/whatifstudio/apps/api/engine/models/` — needs `inswapper_128.onnx` |
 | `~/.whatif-url` empty after deploy | cloudflared hasn't connected yet | `tail -f ~/Library/Logs/whatif/cloudflared.log` and look for "Your quick Tunnel has been created" |
 | Public URL returns 502 | Container died after deploy | `docker logs whatif` to see why; restart with `docker start whatif` |
+| Phone QR 404 / won't open | Booth opened `localhost:7860` instead of tunnel URL | Open `cat ~/.whatif-url` on the display; redeploy to refresh `PUBLIC_BASE_URL` |
 | Mac mini goes to sleep during demo | `pmset disablesleep` not set | `sudo pmset -a disablesleep 1` |
 | `cairosvg` import error in container | macOS build env vs Linux runtime mismatch | Rebuild with `docker build --no-cache -t whatif .` |
 | Container OOM-killed | Too many workers for available RAM | Lower `WORKERS=1` in the deploy script |
