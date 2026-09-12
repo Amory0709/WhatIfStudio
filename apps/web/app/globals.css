@@ -117,3 +117,95 @@
     size: 152mm 102mm;
   }
 }
+
+/* Liquid gallery: luminous color at the edges, clear portrait at the center. */
+.studio-liquid { min-height: 100svh; height: 100svh; }
+.studio-header-glass {
+  top: max(18px, env(safe-area-inset-top));
+  left: 24px;
+  right: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.88);
+  background: linear-gradient(120deg, rgba(255,255,255,.84), rgba(255,255,255,.34) 48%, rgba(239,246,255,.55));
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: inset 0 2px 1px #fff, inset 0 -1px 1px rgba(84,117,180,.12), 0 8px 30px rgba(47,72,130,.055);
+}
+.liquid-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 0 48%, #b3e8f5 0, transparent 46%), radial-gradient(ellipse at 100% 40%, #d8c4ff 0, transparent 45%), #f8faff;
+}
+.liquid-light canvas { width: 100%; height: 100%; opacity: 0; transition: opacity .6s; }
+.gallery-track { transform: translateY(-7vh); }
+.glass-artwork {
+  padding: 9px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(255,255,255,.95);
+  background: linear-gradient(140deg, rgba(255,255,255,.88), rgba(208,232,255,.18) 45%, rgba(255,255,255,.7));
+  box-shadow: inset 2px 3px 2px rgba(255,255,255,.9), inset -2px -2px 3px rgba(98,135,191,.2), 0 20px 55px -24px rgba(38,64,126,.32);
+}
+.glass-artwork img, .glass-artwork > .bg-gradient-to-br { border-radius: 10px; }
+.glass-artwork-active {
+  box-shadow: inset 2px 3px 2px #fff, inset -2px -2px 3px rgba(77,109,167,.18), 0 35px 90px -24px rgba(37,79,168,.38), 0 0 0 4px rgba(255,255,255,.3);
+}
+.glass-artwork-orbit { opacity: .78; }
+.glass-artwork-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(125deg, rgba(255,255,255,.38), transparent 25%, transparent 68%, rgba(174,227,255,.16) 86%, rgba(255,255,255,.3));
+  box-shadow: inset 0 1px 0 #fff;
+}
+.gallery-caption { bottom: clamp(94px, 12vh, 140px); }
+.gallery-title { max-width: 850px; text-wrap: balance; }
+.glass-continue {
+  color: white;
+  border-radius: 100px;
+  border: 1px solid rgba(105,155,255,.7);
+  background: linear-gradient(165deg, #527ff2 0%, #164cda 45%, #0033bb 100%);
+  box-shadow: inset 0 2px 1px rgba(255,255,255,.6), inset 0 -2px 2px rgba(0,25,110,.2), 0 8px 24px rgba(0,51,204,.23);
+}
+.glass-continue:hover { filter: brightness(1.1); }
+.glass-dock {
+  bottom: max(22px, env(safe-area-inset-bottom));
+  padding: 4px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+  color: #1b3867;
+  border: 1px solid rgba(255,255,255,.95);
+  background: linear-gradient(155deg, rgba(255,255,255,.85), rgba(240,246,255,.45));
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: inset 0 2px 1px #fff, inset 0 -1px 1px rgba(74,108,163,.13), 0 8px 28px rgba(37,70,133,.1);
+}
+.glass-dock button { border-radius: 100px; font-size: 14px; min-height: 44px; }
+.glass-dock button:hover { background: rgba(255,255,255,.7); }
+.studio-liquid button:focus-visible { outline: 2px solid #0033cc; outline-offset: 4px; }
+@media (max-width: 767px) {
+  .studio-header-glass { top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; border-radius: 20px; padding-inline: 18px; }
+  .studio-header h1 { font-size: 22px; }
+  .studio-header h1 span { margin-left: 4px; }
+  .studio-header > div:last-child { font-size: 10px; letter-spacing: .1em; }
+  .gallery-track { transform: translateY(-8vh); }
+  .gallery-caption { bottom: 104px; }
+  .gallery-title { font-size: clamp(24px, 6vw, 34px); }
+  .glass-dock { max-width: calc(100vw - 24px); padding: 3px 5px; gap: 4px; }
+  .glass-dock span { font-size: 10px; }
+}
+@media (max-height: 670px) {
+  .gallery-caption { bottom: 86px; }
+  .gallery-caption h2 { font-size: 24px; margin-top: 4px; }
+  .gallery-caption p { margin-top: 3px; }
+  .glass-continue { margin-top: 8px; padding-block: 10px; }
+  .glass-dock { bottom: 12px; }
+}
+@media (max-height: 480px) and (min-width: 600px) {
+  .gallery-caption { left: auto; right: 24px; width: 32%; bottom: 85px; }
+  .gallery-track { width: 65%; align-self: flex-start; transform: translateY(10vh); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-liquid *, .studio-liquid *::before, .studio-liquid *::after { animation: none !important; transition: none !important; }
+}

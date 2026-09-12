@@ -1,13 +1,15 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, type PanInfo } from 'framer-motion';
 import { GradientTile } from './GradientTile';
+import { LiquidLight } from './LiquidLight';
 import type { AGArtwork } from './types';
 
 export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect: (img: AGArtwork) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const total = items.length;
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
@@ -16,7 +18,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const handleDragEnd = (_e: any, info: any) => {
+  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // info.offset is the cumulative drag distance (unclamped now that
     // dragConstraints are removed). ~80px ≈ one card width on the
     // 280px-wide carousel.
@@ -33,6 +35,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && e.target.closest('button, a, input, textarea, select, [contenteditable]')) return;
       if (e.key === 'ArrowRight') setCurrentIndex((p) => p + 1);
       if (e.key === 'ArrowLeft') setCurrentIndex((p) => p - 1);
       if (e.key === 'Enter') {
@@ -44,37 +47,24 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
 
-  const activeIndex = ((currentIndex % total) + total) % total;
+  const activeIndex = total ? ((currentIndex % total) + total) % total : 0;
   function activeIndexCalc() { return ((currentIndex % total) + total) % total; }
   const activeImage = items[activeIndex];
   const R = isMobile ? 300 : 700;
 
+  if (!activeImage) return <div className="flex h-full items-center justify-center">No portraits available.</div>;
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
+    <div className="liquid-gallery absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
+      <LiquidLight />
       <div
-        className="relative w-full h-[50vh] md:h-[60vh] flex items-center justify-center touch-none preserve-3d translate-y-4 md:translate-y-8"
+        className="relative w-full h-[50vh] md:h-[60vh] flex items-center justify-center touch-none preserve-3d gallery-track"
         style={{ perspective: '4000px' }}
       >
         <div
           className="w-full h-full preserve-3d"
           style={{ transform: 'scale(0.28) rotateX(-35deg)' }}
         >
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center font-sans italic select-none"
-            style={{
-              color: '#0033CC',
-              transform:
-                'translateX(' +
-                (isMobile ? -1500 : -3000) +
-                'px) translateY(500px) translateZ(-1000px) rotateX(80deg) rotateZ(-4deg)',
-              fontSize: '1800px',
-              opacity: 1,
-              lineHeight: 0.8,
-            }}
-          >
-            1
-          </div>
-
           <motion.div
             className="relative w-full h-full flex items-center justify-center preserve-3d"
             drag="x"
@@ -117,7 +107,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                     scale: isCenter ? 2 : 0.9,
                     zIndex: isCenter ? 100 : 10,
                   }}
-                  transition={{ type: 'spring', stiffness: 50, damping: 20, mass: 1 }}
+                  transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 50, damping: 20, mass: 1 }}
                   onClick={() => {
                     if (isCenter) {
                       onSelect(img);
@@ -131,10 +121,10 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                 >
                   <div
                     className={
-                      'w-full h-full relative overflow-hidden bg-muted transition-all duration-700 ' +
+                      'glass-artwork w-full h-full relative overflow-hidden transition-all duration-700 ' +
                       (isCenter
-                        ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
-                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
+                        ? 'glass-artwork-active'
+                        : 'glass-artwork-orbit hover:opacity-100 hover:scale-[1.04]')
                     }
                     style={{ backfaceVisibility: 'hidden' }}
                   >
@@ -143,14 +133,14 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                     ) : (
                       <GradientTile palette={img.palette} />
                     )}
-                    {!isCenter && <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]" />}
+                    <div className="glass-artwork-sheen" aria-hidden="true" />
                   </div>
                   <div
                     className={
-                      'absolute inset-0 w-full h-full overflow-hidden bg-muted transition-all duration-700 ' +
+                      'glass-artwork absolute inset-0 w-full h-full overflow-hidden transition-all duration-700 ' +
                       (isCenter
-                        ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
-                        : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
+                        ? 'glass-artwork-active'
+                        : 'glass-artwork-orbit hover:opacity-100 hover:scale-[1.04]')
                     }
                     style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
                   >
@@ -159,7 +149,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                     ) : (
                       <GradientTile palette={img.palette} />
                     )}
-                    {!isCenter && <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]" />}
+                    <div className="glass-artwork-sheen" aria-hidden="true" />
                   </div>
                 </motion.div>
               );
@@ -169,20 +159,20 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
       </div>
 
       {/* Caption + Continue — always visible, updates as you spin the track. */}
-      <div className="absolute bottom-24 left-0 right-0 flex flex-col items-center justify-center pointer-events-none">
+      <div className="gallery-caption absolute left-4 right-4 flex flex-col items-center justify-center pointer-events-none">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeImage.id}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
             transition={{ duration: 0.3 }}
-            className="text-center"
+            className="text-center max-w-full"
           >
-            <p className="text-[10px] font-sans uppercase tracking-[0.3em] text-muted-foreground">
+            <p className="text-xs font-sans uppercase tracking-[0.22em] text-muted-foreground">
               {activeImage.artist} &middot; {activeImage.year}
             </p>
-            <h2 className="mt-2 text-4xl md:text-5xl italic text-primary font-sans">
+            <h2 className="gallery-title mt-2 text-3xl md:text-5xl italic text-primary font-sans">
               {activeImage.title}
             </h2>
             <p className="mt-3 text-xs font-sans uppercase tracking-widest text-muted-foreground">
@@ -191,7 +181,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
             <button
               type="button"
               onClick={() => onSelect(activeImage)}
-              className="pointer-events-auto mt-5 px-8 py-3 bg-primary text-primary-foreground font-sans text-xs uppercase tracking-widest hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-lg shadow-primary/30"
+              className="glass-continue pointer-events-auto mt-4 px-8 py-3 font-sans text-sm uppercase tracking-widest transition-all hover:scale-[1.02]"
             >
               Continue &rarr;
             </button>
@@ -199,10 +189,10 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
         </AnimatePresence>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] font-sans uppercase tracking-widest text-muted-foreground flex items-center gap-8 opacity-80 z-50">
-        <button onClick={() => setCurrentIndex((p) => p - 1)} className="hover:text-primary transition-colors py-2">&larr; Prev</button>
-        <span className="opacity-50 tracking-[0.2em]">Drag to Spin &infin;</span>
-        <button onClick={() => setCurrentIndex((p) => p + 1)} className="hover:text-primary transition-colors py-2">Next &rarr;</button>
+      <div className="glass-dock absolute left-1/2 -translate-x-1/2 text-xs font-sans uppercase tracking-widest flex items-center gap-3 md:gap-6 z-40">
+        <button onClick={() => setCurrentIndex((p) => p - 1)} className="hover:text-primary transition-colors px-3 py-3">&larr; Prev</button>
+        <span className="text-muted-foreground whitespace-nowrap tracking-[0.12em]">Drag to Spin &infin;</span>
+        <button onClick={() => setCurrentIndex((p) => p + 1)} className="hover:text-primary transition-colors px-3 py-3">Next &rarr;</button>
       </div>
     </div>
   );

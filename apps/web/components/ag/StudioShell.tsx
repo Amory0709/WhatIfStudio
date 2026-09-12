@@ -87,9 +87,9 @@ export function StudioShell({
   };
 
   return (
-    <div className="min-h-screen h-screen bg-background text-foreground overflow-hidden flex flex-col">
+    <div className={`min-h-screen h-screen bg-background text-foreground overflow-hidden flex flex-col ${step === 'gallery' ? 'studio-liquid' : ''}`}>
       {/* Header — 1:1 AG App */}
-      <header className="py-3 px-6 md:py-4 md:px-10 flex items-center justify-between z-50 fixed top-0 left-0 right-0 backdrop-blur-2xl backdrop-saturate-150 bg-white/55 supports-[backdrop-filter]:bg-white/40 border-b border-white/40 shadow-[inset_0_-1px_0_rgba(0,0,0,0.05)] transition-all">
+      <header className={`studio-header py-3 px-6 md:py-4 md:px-7 flex items-center justify-between z-50 fixed transition-all ${step === 'gallery' ? 'studio-header-glass' : 'inset-x-0 top-0 bg-white/90 border-b border-border'}`}>
         <div className="flex items-center gap-4">
           <AnimatePresence>
             {step !== 'gallery' && (
@@ -98,6 +98,7 @@ export function StudioShell({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 onClick={handleBack}
+                aria-label="Go back"
                 className="hover:text-muted-foreground transition-colors"
               >
                 <ChevronLeft className="w-6 h-6" strokeWidth={1.5} />
@@ -114,7 +115,7 @@ export function StudioShell({
       </header>
 
       {/* Main — AG App 不加 pt-16，header 是 fixed 浮层 */}
-      <main className="flex-1 relative w-full h-[calc(100vh-0px)] perspective-1000 -translate-y-[5vh]">
+      <main className={`flex-1 relative w-full h-[calc(100vh-0px)] perspective-1000 ${step === 'gallery' ? '' : '-translate-y-[5vh]'}`}>
         <AnimatePresence mode="wait">
           {step === 'gallery' && (
             <GalleryView key="gallery" items={items} onSelect={handleSelect} />
