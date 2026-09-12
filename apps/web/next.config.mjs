@@ -12,7 +12,10 @@
 // demand. NODE_ENV is set by `next dev`/`next build` for us.
 /** @type {import("next").NextConfig} */
 const isProd = process.env.NODE_ENV === 'production';
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
 const nextConfig = {
+  basePath,
+  ...(basePath && { trailingSlash: true }),
   // Pure static export → drops into apps/web/out, then FastAPI serves it.
   ...(isProd && { output: 'export' }),
   // next/image is not used, but keep unoptimized in case a child component pulls it in.

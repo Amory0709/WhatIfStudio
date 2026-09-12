@@ -1,3 +1,4 @@
+import { sitePath } from '@/lib/site-path';
 import { notFound } from "next/navigation";
 import { loadOne, loadGallery } from "@/lib/gallery";
 import { StudioShell } from "@/components/ag/StudioShell";
@@ -17,7 +18,7 @@ export default async function PrintPage({ params }: { params: { id: string } }) 
   if (!art) return notFound();
   // SSR placeholder so ResultView renders into HTML. The client effect below replaces
   // this with the real sessionStorage blob URL (the swapped-face PNG) once mounted.
-  const initialPrintUrl = art.image ?? `/gallery/${params.id}.jpg`;
+  const initialPrintUrl = sitePath(art.image ?? `/gallery/${params.id}.jpg`);
   return (
     <main className="relative min-h-screen overflow-hidden">
       <StudioShell items={items} initialId={params.id} initialStep="result" initialPrintUrl={initialPrintUrl} />

@@ -1,4 +1,5 @@
 "use client";
+import { sitePath } from '@/lib/site-path';
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
@@ -57,25 +58,25 @@ export function StudioShell({
   const handleSelect = (img: AGArtwork) => {
     setSelected(img);
     setStep('detail');
-    if (typeof window !== 'undefined') window.history.replaceState(null, '', '/swap/' + img.sourceId);
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', sitePath('/swap/' + img.sourceId));
   };
 
   const handleComplete = (url: string) => {
     setPrintUrl(url);
     setStep('result');
     if (typeof window !== 'undefined' && selected) {
-      window.history.replaceState(null, '', '/print/' + selected.sourceId);
+      window.history.replaceState(null, '', sitePath('/print/' + selected.sourceId));
     }
   };
 
   const handleBack = () => {
     if (step === 'result') {
       setStep('detail');
-      if (typeof window !== 'undefined' && selected) window.history.replaceState(null, '', '/swap/' + selected.sourceId);
+      if (typeof window !== 'undefined' && selected) window.history.replaceState(null, '', sitePath('/swap/' + selected.sourceId));
     } else if (step === 'detail') {
       setStep('gallery');
       setSelected(null);
-      if (typeof window !== 'undefined') window.history.replaceState(null, '', '/');
+      if (typeof window !== 'undefined') window.history.replaceState(null, '', sitePath('/'));
     }
   };
 
@@ -83,7 +84,7 @@ export function StudioShell({
     setStep('gallery');
     setSelected(null);
     setPrintUrl(null);
-    if (typeof window !== 'undefined') window.history.replaceState(null, '', '/');
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', sitePath('/'));
   };
 
   return (

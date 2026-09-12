@@ -1,3 +1,5 @@
+import { sitePath } from '@/lib/site-path';
+
 export type AGArtwork = {
   /** Unique carousel key (fig-N for filler slots). */
   id: string;
@@ -66,7 +68,7 @@ export function buildAGItems(
         artist: r.artist ?? 'Curated',
         year: r.year ?? 2026,
         palette: r.palette ?? PALETTE_LABELS[i % PALETTE_LABELS.length],
-        image,
+        image: sitePath(image),
       });
     } else {
       items.push({
@@ -76,7 +78,7 @@ export function buildAGItems(
         artist: 'Curated',
         year: 2026,
         palette: PALETTE_LABELS[i % PALETTE_LABELS.length],
-        image,
+        image: sitePath(image),
       });
     }
   }
