@@ -7,9 +7,9 @@ export default {
       fontFamily: {
         // SLBSans (Schlumberger brand sans) — vendored from
         // github.com/Amory0709/SLB100FamilyDay/assets/fonts/
-        sans: ["SLBSans", "Helvetica Neue", "Helvetica", "Arial", "system-ui", "sans-serif"],
-        serif: ["SLBSans", "Helvetica Neue", "Helvetica", "Arial", "serif"],
-        display: ["SLBSans", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+        sans: ["var(--font-slb)", "Helvetica Neue", "Helvetica", "Arial", "system-ui", "sans-serif"],
+        serif: ["var(--font-slb)", "Helvetica Neue", "Helvetica", "Arial", "serif"],
+        display: ["var(--font-slb)", "Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
         mono: ["ui-monospace", "monospace"],
       },
       colors: {
