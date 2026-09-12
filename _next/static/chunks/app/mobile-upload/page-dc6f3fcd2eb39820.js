@@ -1,0 +1,31 @@
+(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[715],{1178:function(e,t,r){Promise.resolve().then(r.bind(r,6316))},6316:function(e,t,r){"use strict";r.r(t),r.d(t,{default:function(){return u}});var a=r(7573),n=r(7653),s=r(534),o=r(2958),i=r(8327),l=r(2937);function c(){var e,t,r,c;let u=(0,s.useSearchParams)(),d=null!==(r=null===(e=u.get("session"))||void 0===e?void 0:e.trim())&&void 0!==r?r:"",m=null!==(c=null===(t=u.get("source"))||void 0===t?void 0:t.trim())&&void 0!==c?c:"",f=(0,n.useRef)(null),[h,p]=(0,n.useState)(!1),[x,y]=(0,n.useState)(!1),[g,w]=(0,n.useState)(null),b=(0,n.useCallback)(async e=>{if(!d){w("Missing upload session. Scan the QR code again from the booth.");return}p(!0),w(null);try{let t=new FormData;t.append("face",e);let r=await fetch("/api/upload-sessions/".concat(d,"/face"),{method:"POST",body:t});if(!r.ok){let e=(await r.json().catch(()=>({}))).detail;throw Error("string"==typeof e?e:"Upload failed")}y(!0)}catch(e){w(e instanceof Error?e.message:"Upload failed")}finally{p(!1)}},[d]);return d?(0,a.jsxs)("main",{className:"mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12",children:[(0,a.jsx)("p",{className:"font-sans text-xs uppercase tracking-widest text-muted-foreground",children:"What If Studio"}),(0,a.jsx)("h1",{className:"mt-2 text-3xl italic",children:"Send your portrait"}),(0,a.jsxs)("p",{className:"mt-3 font-sans text-sm font-light text-muted-foreground",children:["Choose a clear photo of your face. The booth display will compose your artwork automatically",m?" for portrait ".concat(m):"","."]}),(0,a.jsx)("input",{ref:f,type:"file",accept:"image/*",capture:"user",className:"hidden",onChange:e=>{var t;let r=null===(t=e.target.files)||void 0===t?void 0:t[0];r&&b(r)}}),x?(0,a.jsxs)("div",{className:"mt-10 rounded border border-primary/30 bg-primary/5 p-6 text-center",role:"status",children:[(0,a.jsx)(o.Z,{className:"mx-auto h-8 w-8 text-primary","aria-hidden":"true"}),(0,a.jsx)("p",{className:"mt-4 font-sans text-lg text-foreground",children:"Portrait received"}),(0,a.jsx)("p",{className:"mt-2 font-sans text-sm text-muted-foreground",children:"Return to the booth screen — your artwork is being composed."})]}):(0,a.jsxs)("button",{type:"button",disabled:h,onClick:()=>{var e;return null===(e=f.current)||void 0===e?void 0:e.click()},className:"mt-10 flex items-center justify-center gap-3 rounded-full bg-primary px-8 py-4 font-sans text-xs uppercase tracking-widest text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60",children:[h?(0,a.jsx)(i.Z,{className:"h-4 w-4 animate-spin"}):(0,a.jsx)(l.Z,{className:"h-4 w-4"}),h?"Uploading…":"Choose photo"]}),g&&(0,a.jsx)("p",{className:"mt-4 rounded border border-rust/30 bg-rust/5 p-3 text-sm text-rust",role:"alert",children:g})]}):(0,a.jsxs)("main",{className:"mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12",children:[(0,a.jsx)("h1",{className:"text-2xl italic",children:"Invalid link"}),(0,a.jsx)("p",{className:"mt-3 font-sans text-sm text-muted-foreground",children:"Scan the QR code at the exhibition booth to open a fresh upload link."})]})}function u(){return(0,a.jsx)(n.Suspense,{fallback:(0,a.jsx)("main",{className:"grid min-h-screen place-items-center",children:(0,a.jsx)(i.Z,{className:"h-6 w-6 animate-spin text-primary"})}),children:(0,a.jsx)(c,{})})}},9565:function(e,t,r){"use strict";r.d(t,{Z:function(){return l}});var a=r(7653);/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let n=e=>e.replace(/([a-z0-9])([A-Z])/g,"$1-$2").toLowerCase(),s=function(){for(var e=arguments.length,t=Array(e),r=0;r<e;r++)t[r]=arguments[r];return t.filter((e,t,r)=>!!e&&""!==e.trim()&&r.indexOf(e)===t).join(" ").trim()};/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */var o={xmlns:"http://www.w3.org/2000/svg",width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"};/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let i=(0,a.forwardRef)((e,t)=>{let{color:r="currentColor",size:n=24,strokeWidth:i=2,absoluteStrokeWidth:l,className:c="",children:u,iconNode:d,...m}=e;return(0,a.createElement)("svg",{ref:t,...o,width:n,height:n,stroke:r,strokeWidth:l?24*Number(i)/Number(n):i,className:s("lucide",c),...m},[...d.map(e=>{let[t,r]=e;return(0,a.createElement)(t,r)}),...Array.isArray(u)?u:[u]])}),l=(e,t)=>{let r=(0,a.forwardRef)((r,o)=>{let{className:l,...c}=r;return(0,a.createElement)(i,{ref:o,iconNode:t,className:s("lucide-".concat(n(e)),l),...c})});return r.displayName="".concat(e),r}},2958:function(e,t,r){"use strict";r.d(t,{Z:function(){return a}});/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,r(9565).Z)("Check",[["path",{d:"M20 6 9 17l-5-5",key:"1gmf2c"}]])},8327:function(e,t,r){"use strict";r.d(t,{Z:function(){return a}});/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,r(9565).Z)("LoaderCircle",[["path",{d:"M21 12a9 9 0 1 1-6.219-8.56",key:"13zald"}]])},2937:function(e,t,r){"use strict";r.d(t,{Z:function(){return a}});/**
+ * @license lucide-react v0.460.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */let a=(0,r(9565).Z)("Upload",[["path",{d:"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",key:"ih7n3h"}],["polyline",{points:"17 8 12 3 7 8",key:"t8dd8p"}],["line",{x1:"12",x2:"12",y1:"3",y2:"15",key:"widbto"}]])}},function(e){e.O(0,[293,286,744],function(){return e(e.s=1178)}),_N_E=e.O()}]);
