@@ -31,28 +31,16 @@ export function StudioShell({
   const initial = findById(initialId);
   const [step, setStep] = useState<Step>(initialStep ?? (initial ? 'detail' : 'gallery'));
   const [selected, setSelected] = useState<AGArtwork | null>(initial ?? null);
-  const [printUrl, setPrintUrl] = useState<string | null>(() => {
-    // SSR: only the route-supplied placeholder is available (sessionStorage is browser-only).
-    if (typeof window === 'undefined') return initialPrintUrl ?? null;
-    // Client: prefer the real swapped blob URL from sessionStorage when present.
-    const routeId = initial ? initial.sourceId : initialId;
-    if (routeId) {
-      try {
-        const stored = sessionStorage.getItem('print:' + routeId);
-        if (stored) return stored;
-      } catch {}
-    }
-    return initialPrintUrl ?? null;
-  });
+  const [printUrl, setPrintUrl] = useState<string | null>(initialPrintUrl ?? null);
 
-  useEffect(() => {
-    if (step === 'result' && !printUrl && selected) {
-      try {
-        const url = sessionStorage.getItem('print:' + selected.sourceId);
-        if (url) setPrintUrl(url);
-      } catch {}
-    }
-  }, [step, printUrl, selected]);
+  // The old implementation rehydrated the swapped blob URL from
+  // sessionStorage here. That was buggy: blob: URLs are document-scoped and
+  // become invalid after reload, so the read would resurrect a stale pointer
+  // and the ResultView <img> would silently fail to render. The parent route
+  // (print/[id]/page.tsx) already supplies a static placeholder via
+  // initialPrintUrl; the real swapped image is shown only when the user
+  // arrives via the in-app flow (handleComplete), which overwrites this
+  // state directly.
 
   const handleSelect = (img: AGArtwork) => {
     setSelected(img);

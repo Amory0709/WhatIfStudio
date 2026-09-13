@@ -42,7 +42,11 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  });
+    // [items, onSelect] deps — earlier this ran on every render because the
+    // array had no deps. The cleanup is symmetric so it did not leak, but it
+    // thrashed addEventListener / removeEventListener unnecessarily.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, onSelect]);
 
   const activeIndex = ((currentIndex % total) + total) % total;
   function activeIndexCalc() { return ((currentIndex % total) + total) % total; }

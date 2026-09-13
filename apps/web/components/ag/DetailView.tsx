@@ -20,6 +20,27 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const [finishedIn, setFinishedIn] = useState<number | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
+  // Revoke a blob URL before replacing it. State-only replacement leaks the
+  // previous Blob because nothing holds a reference to it once React unmounts
+  // the <img src={preview}> that consumed it. This wrapper is the single point
+  // of entry for swapping the preview image (file upload, mobile remote
+  // completion, canvas capture).
+  const swapPreview = (next: string | null) => {
+    setPreview((prev) => {
+      if (prev && prev !== next) URL.revokeObjectURL(prev);
+      return next;
+    });
+  };
+
+  // Revoke the preview Blob on unmount so a swap-in-flight response cannot
+  // resurrect the URL into a still-attached <img> after the component is gone.
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -68,12 +89,28 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
 
   const completeWithBlob = (blob: Blob, t0: number) => {
     const url = URL.createObjectURL(blob);
-    sessionStorage.setItem(`print:${target.sourceId}`, url);
     setFinishedIn(Math.round((Date.now() - t0) / 1000));
     onComplete(url);
   };
 
+  // AbortController for the in-flight /api/swap request so we can cancel it
+  // if the user navigates away mid-swap (otherwise the swap keeps running on
+  // the server and tries to setState on an unmounted component when it
+  // resolves).
+  const swapAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    return () => {
+      swapAbortRef.current?.abort();
+      swapAbortRef.current = null;
+    };
+  }, []);
+
   const runSwap = async (f: File) => {
+    // Cancel any prior swap first so its response cannot race this one.
+    swapAbortRef.current?.abort();
+    const ac = new AbortController();
+    swapAbortRef.current = ac;
+
     setBusy(true);
     setError(null);
     setFinishedIn(null);
@@ -84,17 +121,26 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       const fd = new FormData();
       fd.append('source_id', target.sourceId);
       fd.append('face', f);
-      const r = await fetch(`${API_BASE}/api/swap`, { method: 'POST', body: fd });
+      const r = await fetch(`${API_BASE}/api/swap`, {
+        method: 'POST',
+        body: fd,
+        signal: ac.signal,
+      });
       if (!r.ok) {
         const d = (await r.json().catch(() => ({}))).detail;
         throw new Error(d || 'Swap failed');
       }
       const blob = await r.blob();
-      setPreview(URL.createObjectURL(f));
+      // If a newer swap has superseded us, do not touch state — its result
+      // would overwrite the newer one.
+      if (swapAbortRef.current !== ac) return;
+      swapPreview(URL.createObjectURL(f));
       completeWithBlob(blob, t0);
     } catch (e: any) {
+      if (ac.signal.aborted) return;
       setError(e?.message || 'Something went wrong');
     } finally {
+      if (swapAbortRef.current === ac) swapAbortRef.current = null;
       setBusy(false);
       setStartedAt(null);
     }
@@ -112,7 +158,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
   const onFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    setPreview(URL.createObjectURL(f));
+    swapPreview(URL.createObjectURL(f));
     void runSwap(f);
   };
 
@@ -129,7 +175,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
       (b) => {
         if (!b) return;
         const f = new File([b], 'capture.png', { type: 'image/png' });
-        setPreview(URL.createObjectURL(f));
+        swapPreview(URL.createObjectURL(f));
         setShowCam(false);
         void runSwap(f);
       },
@@ -220,7 +266,7 @@ export function DetailView({ target, onComplete, onBack }: { target: AGArtwork; 
             onRemoteComplete={(blob) => {
               setShowUploadModal(false);
               setError(null);
-              setPreview(URL.createObjectURL(blob));
+              swapPreview(URL.createObjectURL(blob));
               completeWithBlob(blob, Date.now());
             }}
             onRemoteError={(message) => {
