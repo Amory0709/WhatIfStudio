@@ -70,6 +70,20 @@
   .print-only { display: none; }
 }
 
+/* The image on the old rear face is flipped horizontally. Viewing the front
+   from behind gives the same orientation without painting a second filtered
+   surface. Match touch input, not viewport width: the portfolio iframe is
+   1300px wide even on phones. Keep desktop hover and gradient-only cards intact. */
+@media (hover: none) and (pointer: coarse) {
+  [data-gallery-image-card] > .gallery-card-front {
+    backface-visibility: visible;
+  }
+
+  [data-gallery-image-card] > .gallery-card-back {
+    display: none;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Print styles — used by window.print() (the "Print via My Device" path).
    Strips all on-screen chrome and reveals ONLY .print-only. Page size is

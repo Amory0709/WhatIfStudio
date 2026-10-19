@@ -112,6 +112,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
               return (
                 <motion.div
                   key={img.id}
+                  data-gallery-image-card={img.image ? '' : undefined}
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] md:w-[420px] aspect-[3/2] preserve-3d cursor-pointer"
                   animate={{
                     x,
@@ -135,12 +136,11 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                 >
                   <div
                     className={
-                      'w-full h-full relative overflow-hidden bg-muted transition-all duration-700 ' +
+                      'gallery-card-front backface-hidden w-full h-full relative overflow-hidden bg-muted transition-all duration-700 ' +
                       (isCenter
                         ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
                         : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
                     }
-                    style={{ backfaceVisibility: 'hidden' }}
                   >
                     {img.image ? (
                       <img src={img.image} alt={img.title} className="w-full h-full object-cover" />
@@ -151,7 +151,7 @@ export function GalleryView({ items, onSelect }: { items: AGArtwork[]; onSelect:
                   </div>
                   <div
                     className={
-                      'absolute inset-0 w-full h-full overflow-hidden bg-muted transition-all duration-700 ' +
+                      'gallery-card-back absolute inset-0 w-full h-full overflow-hidden bg-muted transition-all duration-700 ' +
                       (isCenter
                         ? 'border-2 border-primary shadow-[0_30px_80px_-20px_rgba(0,51,204,0.5)] grayscale-0 ring-4 ring-primary/20'
                         : 'border border-border/50 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 hover:border-primary/60 hover:scale-[1.06] transition-all duration-500 ease-out cursor-pointer')
